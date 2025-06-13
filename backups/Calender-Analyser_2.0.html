@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Analysis Dashboard</title>
+    <script src="Self-development/plotly.min.js"></script>
+    <script src="Self-development/js-yaml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .control-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .date-range-group {
+            display: flex;
+            gap: 15px;
+            align-items: center; 
+            flex-wrap: wrap;
+        }
+
+        .date-range-group .control-item {
+            min-width: 150px;
+        }
+        
+        .date-range-group label { 
+            margin-bottom: 8px; 
+        }
+
+        .date-range-group .clear-dates-btn-container {
+            display: flex;
+            align-items: flex-end; 
+            height: 100%;
+            padding-top: 28px; 
+        }
+
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        select, input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+            height: 48px; 
+        }
+
+        select:focus, input[type="text"]:focus, input[type="date"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            width: 100%;
+            justify-content: center;
+            height: 48px; 
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 25px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3; /* Light grey circle */
+            border-top: 3px solid #667eea; /* Blue accent for spinner top */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast Notification Styles */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000; 
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end; /* Toasts align to the right if not full width */
+        }
+
+        .toast {
+            background-color: #333; /* Default dark toast */
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+            opacity: 0;
+            transform: translateX(20%); /* Start off-screen slightly for slide-in */
+            transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            align-items: center;
+            min-width: 280px;
+            max-width: 400px;
+            font-size: 0.95rem;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast .loading { /* Adjust loading spinner for toast */
+            border-top-color: white; /* Ensure spinner is visible on dark toasts */
+            border-left-color: rgba(255,255,255,0.3); /* Lighter other parts of spinner */
+            border-right-color: rgba(255,255,255,0.3);
+            border-bottom-color: rgba(255,255,255,0.3);
+        }
+
+        .toast.success { background-color: #4CAF50; } /* Green */
+        .toast.error { background-color: #f44336; }   /* Red */
+        .toast.info { background-color: #2196F3; }    /* Blue */
+        .toast.info-persistent { background-color: #555; } /* Darker grey for persistent loading */
+
+
+        /* Enhanced popup styles (Detail Popup) */
+        .detail-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95); 
+            background: white;
+            border-radius: 20px;
+            padding: 0; 
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            z-index: 1000;
+            max-width: 90vw;
+            width: 800px; 
+            max-height: 85vh;
+            overflow: hidden; 
+            display: none; 
+            opacity: 0;
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+
+        .detail-popup.visible {
+            display: flex; 
+            flex-direction: column;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 25px;
+            position: relative;
+            border-top-left-radius: 20px; 
+            border-top-right-radius: 20px; 
+        }
+
+        .popup-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            max-width: calc(100% - 50px); 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px; 
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        .popup-body {
+            padding: 25px;
+            flex-grow: 1; 
+            overflow-y: auto; 
+            background-color: #f8f9fa; 
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f2f5, #e6e9ed);
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .summary-stat {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .summary-stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 3px;
+        }
+
+        .summary-stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-table-container {
+            overflow-x: auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .detail-table th {
+            background: linear-gradient(135deg, #7385db, #8561b1); 
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky; 
+            top: 0;
+            z-index: 1;
+        }
+
+        .detail-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef; 
+            vertical-align: top;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .detail-table tr:nth-child(even) {
+            background-color: #f8f9fa; 
+        }
+        .detail-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .file-path-cell {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #4a5568;
+            max-width: 250px; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block; 
+        }
+
+        .duration-cell {
+            text-align: right;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .date-cell {
+            color: #4a5568;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .project-cell {
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .subproject-cell { 
+            color: #718096;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px); 
+            z-index: 999;
+            display: none; 
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+        .overlay.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        .clear-dates-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 12px 16px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            font-size: 1rem; 
+            transition: all 0.3s ease;
+            line-height: 1.5; 
+            height: 48px; 
+        }
+
+        .clear-dates-btn:hover {
+            background: #c53030;
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 900px) {
+            .detail-popup {
+                width: 95vw;
+            }
+             #toastContainer {
+                right: 10px;
+                left: 10px;
+                top: 10px;
+                align-items: center; /* Center toasts on smaller screens */
+            }
+            .toast {
+                width: auto; /* Allow toast to size based on content more freely */
+                max-width: calc(100vw - 40px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-group {
+                flex-direction: column;
+            }
+            
+            .control-item {
+                min-width: 100%; 
+            }
+
+            .date-range-group {
+                flex-direction: column; 
+                width: 100%; 
+            }
+            .date-range-group .control-item {
+                width: 100%; 
+            }
+             .date-range-group .clear-dates-btn-container {
+                 width: 100%; 
+                 padding-top: 0; 
+                 margin-top: 10px; 
+            }
+            .clear-dates-btn {
+                width: 100%; 
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .summary-stats {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+
+            .detail-table {
+                font-size: 0.85rem;
+            }
+
+            .file-path-cell {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer"></div> <!-- For toast notifications -->
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Time Analysis Dashboard</h1>
+            <p>Interactive analysis of your time tracking data</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="folderInput">📁 Select Folder</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="folderInput" class="file-input" webkitdirectory directory multiple>
+                        <div class="file-input-button">
+                            <span>🗂️</span>
+                            <span>Choose Folder</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="levelSelect">📈 Analysis Level</label>
+                    <select id="levelSelect">
+                        <option value="hierarchy">Hierarchy (Top-level folders)</option>
+                        <option value="project">Project</option>
+                        <option value="subproject">Sub-project</option>
+                    </select>
+                </div>
+                
+                <div class="control-item" id="hierarchyFilterContainer" style="display: none;">
+                    <label for="hierarchyFilter">📂 Filter by Hierarchy</label>
+                    <select id="hierarchyFilter">
+                        <option value="">All Hierarchies</option>
+                    </select>
+                </div>
+                
+                <div class="control-item" id="projectFilterContainer" style="display: none;">
+                    <label for="projectFilter">📋 Filter by Project</label>
+                    <select id="projectFilter">
+                        <option value="">All Projects</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="patternInput">🔍 Additional Filter Pattern (Optional)</label>
+                    <input type="text" id="patternInput" placeholder="e.g., Project.*|Task.*">
+                </div>
+                
+                <div class="control-item"> 
+                    <div class="date-range-group">
+                        <div class="control-item">
+                            <label for="startDate">📅 Start Date</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        
+                        <div class="control-item">
+                            <label for="endDate">📅 End Date</label>
+                            <input type="date" id="endDate">
+                        </div>
+                        
+                        <div class="clear-dates-btn-container"> 
+                             <button class="clear-dates-btn" id="clearDatesBtn" title="Clear date filters">
+                                🗑️ Clear Dates
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalHours">0</div>
+                <div class="stat-label">Total Hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalFiles">0</div>
+                <div class="stat-label">Files Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCategories">0</div>
+                <div class="stat-label">Categories</div>
+            </div>
+        </div>
+
+        <div class="chart-container" id="chartContainer" style="display: none;">
+            <div id="pieChart"></div>
+        </div>
+    </div>
+
+    <div class="overlay" id="detailOverlay"></div>
+    <div class="detail-popup" id="detailPopup">
+        <div class="popup-header">
+            <h2 class="popup-title" id="popupTitle">Category Details</h2>
+            <button class="close-btn" id="popupCloseBtn" title="Close">×</button>
+        </div>
+        <div class="popup-body">
+            <div class="summary-stats" id="popupSummaryStats"></div>
+            <div class="detail-table-container">
+                <table class="detail-table" id="popupDetailTable">
+                    <thead>
+                        <tr>
+                            <th>File Path</th>
+                            <th>Date</th>
+                            <th>Duration (hrs)</th>
+                            <th>Project</th>
+                            <th>Sub-project (Full)</th> 
+                        </tr>
+                    </thead>
+                    <tbody id="popupTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TimeAnalyzer {
+            constructor() {
+                this.records = [];
+                this.cache = new Map(); 
+                this.currentAggregatedData = null; 
+                this.loadingToast = null;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('folderInput').addEventListener('change', (e) => this.handleFolderSelect(e));
+                document.getElementById('levelSelect').addEventListener('change', () => this.handleLevelChange());
+                document.getElementById('hierarchyFilter').addEventListener('change', () => this.updateAnalysis());
+                document.getElementById('projectFilter').addEventListener('change', () => this.updateAnalysis());
+                document.getElementById('patternInput').addEventListener('input', () => this.debounce(this.updateAnalysis.bind(this), 300)());
+                
+                document.getElementById('startDate').addEventListener('change', () => this.updateAnalysis());
+                document.getElementById('endDate').addEventListener('change', () => this.updateAnalysis());
+                document.getElementById('clearDatesBtn').addEventListener('click', () => this.clearDateFilters());
+
+                document.getElementById('popupCloseBtn').addEventListener('click', () => this.hideDetailPopup());
+                document.getElementById('detailOverlay').addEventListener('click', () => this.hideDetailPopup());
+            }
+
+            debounce(func, delay) {
+                let timeout;
+                return function(...args) {
+                    const context = this;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), delay);
+                };
+            }
+
+            clearDateFilters() {
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                this.updateAnalysis();
+            }
+
+            showStatus(message, type = 'info', duration = 5000) {
+                const toastContainer = document.getElementById('toastContainer');
+                if (!toastContainer) {
+                    console.error("Toast container not found. Message:", message);
+                    return null;
+                }
+
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = message; 
+
+                toastContainer.appendChild(toast);
+
+                requestAnimationFrame(() => {
+                    toast.classList.add('visible');
+                });
+                
+                if (type !== 'info-persistent') { 
+                    setTimeout(() => {
+                        this.hideSpecificToast(toast);
+                    }, duration);
+                }
+                return toast;
+            }
+
+            hideSpecificToast(toastElement) {
+                if (toastElement && toastElement.parentNode) {
+                    toastElement.classList.remove('visible');
+                    toastElement.addEventListener('transitionend', () => {
+                        if (toastElement.parentNode) {
+                            toastElement.parentNode.removeChild(toastElement);
+                        }
+                    }, { once: true });
+                }
+            }
+
+            async handleFolderSelect(event) {
+                const files = Array.from(event.target.files);
+                const mdFiles = files.filter(file => file.name.toLowerCase().endsWith('.md'));
+                
+                if (mdFiles.length === 0) {
+                    this.showStatus('No .md files found in the selected folder.', 'error');
+                    return;
+                }
+                if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+                this.loadingToast = this.showStatus(`<span class="loading"></span> Processing ${mdFiles.length} markdown files...`, 'info-persistent');
+                await this.processFiles(mdFiles);
+            }
+
+            async processFiles(files) {
+                this.records = [];
+                let processedFreshly = 0, skipped = 0;
+                for (const file of files) {
+                    try {
+                        const record = await this.parseFile(file);
+                        if (record) {
+                            this.records.push(record);
+                            processedFreshly++;
+                        } else skipped++;
+                    } catch (error) {
+                        console.warn(`Skipping ${file.name}: ${error.message}`);
+                        skipped++;
+                    }
+                }
+
+                if (this.loadingToast) {
+                    this.hideSpecificToast(this.loadingToast);
+                    this.loadingToast = null;
+                }
+
+                let statusMessage = `Processed: ${processedFreshly} files.`;
+                if (skipped > 0) statusMessage += ` Skipped: ${skipped} (check console).`;
+                this.showStatus(statusMessage, processedFreshly > 0 ? 'success' : 'error');
+                
+                this.populateFilterDropdowns();
+                this.updateAnalysis(); 
+            }
+            
+            async parseFile(file) {
+                const content = await file.text();
+                const pathParts = file.webkitRelativePath.split('/');
+                const hierarchy = pathParts.length > 2 ? pathParts[1] : 'root';
+                
+                const filenameRegex = /^(?:(\d{4}-\d{2}-\d{2})\s+(.+?)\s+-\s+(.+?)(?:\s+(\d+|[IVXLCDM]+))?|(?:\(.+?\)\s+)(.+?)(?:\s*-\s*(.+?))?(?:\s+(\d+|[IVXLCDM]+))?)\.md$/i;
+                const filenameMatch = file.name.match(filenameRegex);
+
+                if (!filenameMatch) {
+                    throw new Error('Filename pattern does not match. Expected "YYYY-MM-DD Project - Subproject Serial.md" or "(Tag) Project - Subproject Serial.md" variations.');
+                }
+
+                let dateStr, projectFromFile, subprojectRaw, serialFromFile;
+                if (filenameMatch[1]) { 
+                    dateStr = filenameMatch[1];
+                    projectFromFile = filenameMatch[2];
+                    subprojectRaw = filenameMatch[3];
+                    serialFromFile = filenameMatch[4];
+                } else { 
+                    projectFromFile = filenameMatch[5];
+                    subprojectRaw = filenameMatch[6] || 'none'; 
+                    serialFromFile = filenameMatch[7];
+                }
+                
+                const yamlMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+                if (!yamlMatch) throw new Error('No YAML front matter found');
+                let metadata;
+                try { metadata = jsyaml.load(yamlMatch[1]); } 
+                catch (error) { throw new Error(`Invalid YAML: ${error.message}`); }
+
+                if (!metadata.startTime || !metadata.endTime) throw new Error('Missing startTime or endTime in YAML');
+                
+                let eventDuration;
+                if (metadata.type === 'recurring') {
+                    // For recurring events, calculate per-instance duration.
+                    // The actual number of instances will be determined by filters later.
+                    if (metadata.startTime && metadata.endTime) {
+                         // The '1' signifies calculating for a single day/instance.
+                        eventDuration = this.calculateDuration(metadata.startTime, metadata.endTime, 1);
+                    } else {
+                        eventDuration = 0;
+                        console.warn(`Recurring event ${file.name} missing startTime or endTime. Duration set to 0.`);
+                    }
+                } else {
+                    // For non-recurring events. metadata.days might be present for multi-day single events.
+                    // If metadata.days is not present, calculateDuration defaults to 1 day.
+                    eventDuration = this.calculateDuration(metadata.startTime, metadata.endTime, metadata.days);
+                }
+                
+                let recordDate = null;
+                if (dateStr) recordDate = new Date(dateStr);
+                else if (metadata.date) {
+                    const metaDateStr = metadata.date.toString();
+                    const dateParts = metaDateStr.split('-');
+                    if (dateParts.length === 3 && !isNaN(Date.parse(metaDateStr))) {
+                        recordDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                    } else recordDate = new Date(metaDateStr); // Try to parse directly if not YYYY-MM-DD
+                }
+                if (recordDate && isNaN(recordDate.getTime())) recordDate = null; 
+
+                const finalProject = projectFromFile.trim();
+                let baseSubproject = subprojectRaw?.replace(/\s+(\d+|[IVXLCDM]+)$/, '').trim();
+                if (!baseSubproject || baseSubproject === "") baseSubproject = 'none';
+
+                let fullSubproject = subprojectRaw || 'none'; 
+                if (serialFromFile) fullSubproject = `${subprojectRaw || 'none'} ${serialFromFile}`;
+                fullSubproject = fullSubproject.trim();
+                if (fullSubproject === "") fullSubproject = 'none';
+
+                return {
+                    path: file.webkitRelativePath,
+                    hierarchy: hierarchy, 
+                    project: finalProject,
+                    subproject: baseSubproject, 
+                    subprojectFull: fullSubproject, 
+                    duration: eventDuration, // Per-instance for recurring, total for non-recurring
+                    file: file.name,
+                    date: recordDate, 
+                    metadata: metadata
+                };
+            }
+
+            calculateDuration(startTime, endTime, days = 1) {
+                const parseTime = (timeStr) => {
+                    if (typeof timeStr === 'number') { 
+                        const hours = Math.floor(timeStr);
+                        const minutes = Math.round((timeStr - hours) * 60); 
+                        return { hours, minutes };
+                    }
+                    const timeMatch = timeStr.toString().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                    if (timeMatch) return { hours: parseInt(timeMatch[1]), minutes: parseInt(timeMatch[2]) };
+                    try {
+                        const d = new Date(timeStr); 
+                        if (!isNaN(d.getTime())) return { hours: d.getHours(), minutes: d.getMinutes() };
+                    } catch(e) { /* ignore */ }
+                    throw new Error(`Invalid time format: ${timeStr}. Expected HH:MM or decimal hours.`);
+                };
+                try {
+                    const start = parseTime(startTime), end = parseTime(endTime);
+                    let startMinutes = start.hours * 60 + start.minutes, endMinutes = end.hours * 60 + end.minutes;
+                    if (endMinutes < startMinutes) endMinutes += 24 * 60;
+                    return (endMinutes - startMinutes) * (Math.max(1, Number(days) || 1)) / 60; 
+                } catch (error) {
+                    console.error("Error calculating duration:", error.message, "startTime:", startTime, "endTime:", endTime, "days:", days);
+                    return 0; 
+                }
+            }
+            
+            getDayOfWeekNumber(dayChar) {
+                // JS Date.getDay(): Sunday=0, Monday=1, ..., Saturday=6
+                // Assuming common short codes for days of the week.
+                const mapping = {
+                    'U': 0, // Sunday
+                    'M': 1, // Monday
+                    'T': 2, // Tuesday
+                    'W': 3, // Wednesday
+                    'R': 4, // Thursday (as per user spec, R for Thursday)
+                    'F': 5, // Friday
+                    'S': 6  // Saturday
+                };
+                const upperDayChar = dayChar.trim().toUpperCase();
+
+                if (mapping.hasOwnProperty(upperDayChar)) {
+                    return mapping[upperDayChar];
+                }
+                console.warn(`Unrecognized day character: '${dayChar}'. Could not map to a day of the week using the U,M,T,W,R,F,S convention.`);
+                return undefined;
+            }
+
+            calculateRecurringInstancesInDateRange(metadata, filterStartDate, filterEndDate) {
+                const { startRecur: metaStartRecurStr, endRecur: metaEndRecurStr, daysOfWeek: metaDaysOfWeek } = metadata;
+
+                if (!metaStartRecurStr || !metaDaysOfWeek) {
+                    // console.warn("Recurring event metadata missing startRecur or daysOfWeek.", metadata);
+                    return 0;
+                }
+
+                const recurrenceStart = new Date(metaStartRecurStr);
+                if (isNaN(recurrenceStart.getTime())) {
+                    console.warn("Invalid startRecur date:", metaStartRecurStr, "in record:", metadata);
+                    return 0;
+                }
+                recurrenceStart.setHours(0, 0, 0, 0);
+
+                const recurrenceEnd = metaEndRecurStr ? new Date(metaEndRecurStr) : new Date('9999-12-31');
+                if (isNaN(recurrenceEnd.getTime())) {
+                    console.warn("Invalid endRecur date:", metaEndRecurStr, "in record:", metadata);
+                    return 0;
+                }
+                recurrenceEnd.setHours(23, 59, 59, 999);
+
+                let effectiveStart = recurrenceStart;
+                if (filterStartDate && !isNaN(filterStartDate.getTime())) {
+                    const filterStartNormalized = new Date(filterStartDate);
+                    filterStartNormalized.setHours(0,0,0,0);
+                    effectiveStart = new Date(Math.max(recurrenceStart.getTime(), filterStartNormalized.getTime()));
+                }
+
+                let effectiveEnd = recurrenceEnd;
+                if (filterEndDate && !isNaN(filterEndDate.getTime())) {
+                    const filterEndNormalized = new Date(filterEndDate);
+                    filterEndNormalized.setHours(23,59,59,999); // Inclusive end for filter
+                    effectiveEnd = new Date(Math.min(recurrenceEnd.getTime(), filterEndNormalized.getTime()));
+                }
+
+                if (effectiveStart > effectiveEnd) {
+                    return 0; 
+                }
+
+                const rawDaysOfWeekArray = Array.isArray(metaDaysOfWeek) ? metaDaysOfWeek : metaDaysOfWeek.toString().replace(/[\[\]\s]/g, '').split(',');
+                const targetDays = rawDaysOfWeekArray
+                    .map(d => this.getDayOfWeekNumber(d.trim())) // Use the updated getDayOfWeekNumber
+                    .filter(d => d !== undefined && d !== null);
+
+                if (targetDays.length === 0) {
+                    console.warn(`No valid days of week parsed for recurrence rule. Original: [${rawDaysOfWeekArray.join(', ')}], Parsed numbers: [${targetDays.join(', ')}]`, metadata);
+                    return 0;
+                }
+
+                let count = 0;
+                let currentDate = new Date(effectiveStart.getTime());
+                currentDate.setHours(12,0,0,0); // Mid-day to avoid DST issues
+
+                while (currentDate <= effectiveEnd) {
+                    let checkDate = new Date(currentDate); 
+                    checkDate.setHours(0,0,0,0); // Normalize for day comparison
+                    
+                    if (targetDays.includes(checkDate.getDay())) {
+                         count++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    currentDate.setHours(12,0,0,0); // Reset to mid-day
+                }
+                return count;
+            }
+            populateFilterDropdowns() {
+                const hierarchies = [...new Set(this.records.map(r => r.hierarchy))].sort();
+                const hierarchySelect = document.getElementById('hierarchyFilter');
+                const currentHierarchyVal = hierarchySelect.value;
+                hierarchySelect.innerHTML = '<option value="">All Hierarchies</option>';
+                hierarchies.forEach(h => {
+                    const option = document.createElement('option');
+                    option.value = h; option.textContent = h;
+                    hierarchySelect.appendChild(option);
+                });
+                if (hierarchies.includes(currentHierarchyVal)) hierarchySelect.value = currentHierarchyVal;
+
+                const projects = [...new Set(this.records.map(r => r.project))].sort();
+                const projectSelect = document.getElementById('projectFilter');
+                const currentProjectVal = projectSelect.value;
+                projectSelect.innerHTML = '<option value="">All Projects</option>';
+                projects.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p; option.textContent = p;
+                    projectSelect.appendChild(option);
+                });
+                if (projects.includes(currentProjectVal)) projectSelect.value = currentProjectVal;
+            }
+
+            handleLevelChange() {
+                const level = document.getElementById('levelSelect').value;
+                const hierarchyContainer = document.getElementById('hierarchyFilterContainer');
+                const projectContainer = document.getElementById('projectFilterContainer');
+                if (level === 'project') {
+                    hierarchyContainer.style.display = 'block';
+                    projectContainer.style.display = 'none';
+                    document.getElementById('projectFilter').value = ''; 
+                } else if (level === 'subproject') {
+                    hierarchyContainer.style.display = 'block';
+                    projectContainer.style.display = 'block';
+                } else { 
+                    hierarchyContainer.style.display = 'none';
+                    projectContainer.style.display = 'none';
+                    document.getElementById('hierarchyFilter').value = ''; 
+                    document.getElementById('projectFilter').value = '';
+                }
+                this.updateAnalysis();
+            }
+            
+            isWithinDateRange(recordDateObj, filterStartDateStr, filterEndDateStr) {
+                const filterStartDate = filterStartDateStr ? new Date(filterStartDateStr) : null;
+                const filterEndDate = filterEndDateStr ? new Date(filterEndDateStr) : null;
+
+                // If no date filters are set, the record is considered within range.
+                if (!filterStartDate && !filterEndDate) return true;
+                
+                // If the record has no valid date, it cannot be within a specific range.
+                if (!recordDateObj || isNaN(recordDateObj.getTime())) return false; 
+                
+                // Normalize all dates to midnight for day-only comparison
+                const recordDateOnly = new Date(recordDateObj.getFullYear(), recordDateObj.getMonth(), recordDateObj.getDate());
+                
+                if (filterStartDate && !isNaN(filterStartDate.getTime())) {
+                    const startDateOnly = new Date(filterStartDate.getFullYear(), filterStartDate.getMonth(), filterStartDate.getDate());
+                    if (recordDateOnly < startDateOnly) return false;
+                }
+                if (filterEndDate && !isNaN(filterEndDate.getTime())) {
+                    const endDateOnly = new Date(filterEndDate.getFullYear(), filterEndDate.getMonth(), filterEndDate.getDate());
+                     // Make endDate inclusive by comparing against the start of the *next* day
+                    const exclusiveEndDate = new Date(endDateOnly);
+                    exclusiveEndDate.setDate(endDateOnly.getDate() + 1);
+                    if (recordDateOnly >= exclusiveEndDate) return false;
+                }
+                return true;
+            }
+
+            aggregate(level, pattern = null) {
+                const hours = new Map();
+                const recordsByCategory = new Map(); // Stores original records, grouped by category key
+                const hierarchyFilter = document.getElementById('hierarchyFilter').value;
+                const projectFilter = document.getElementById('projectFilter').value;
+                const startDateStr = document.getElementById('startDate').value;
+                const endDateStr = document.getElementById('endDate').value;
+                let regex = null;
+                let aggregationError = false;
+
+                if (pattern && pattern.trim()) {
+                    try { 
+                        regex = new RegExp(pattern.trim(), 'i'); 
+                    } catch (error) {
+                        this.showStatus(`Invalid Regex pattern: ${error.message}`, 'error');
+                        aggregationError = true;
+                        // Return structure indicating error
+                        return { hours, recordsByCategory, filteredRecordCount: 0, error: aggregationError };
+                    }
+                }
+
+                for (const record of this.records) {
+                    if (hierarchyFilter && record.hierarchy !== hierarchyFilter) continue;
+                    if (projectFilter && record.project !== projectFilter) continue;
+
+                    let currentRecordDuration = record.duration; // Base duration (per-instance for recurring)
+
+                    if (record.metadata && record.metadata.type === 'recurring') {
+                        // For recurring events, calculate duration based on instances within the date range.
+                        if (!record.metadata.startRecur || !record.metadata.daysOfWeek || record.duration === 0) {
+                            currentRecordDuration = 0; 
+                        } else {
+                            const numInstances = this.calculateRecurringInstancesInDateRange(
+                                record.metadata,
+                                startDateStr ? new Date(startDateStr) : null,
+                                endDateStr ? new Date(endDateStr) : null
+                            );
+                            currentRecordDuration = record.duration * numInstances;
+                        }
+                    } else {
+                        // For non-recurring events, filter by the event's own date.
+                        if (!this.isWithinDateRange(record.date, startDateStr, endDateStr)) {
+                            continue; 
+                        }
+                        // currentRecordDuration is already record.duration (total for non-recurring)
+                    }
+                    
+                    const key = record[level]; 
+                    if (regex && !regex.test(key)) continue;
+
+                    if (currentRecordDuration <= 0) { 
+                        continue;
+                    }
+
+                    hours.set(key, (hours.get(key) || 0) + currentRecordDuration);
+                    
+                    if (!recordsByCategory.has(key)) {
+                        recordsByCategory.set(key, []);
+                    }
+                    recordsByCategory.get(key).push(record); 
+                }
+                
+                // Calculate unique source files that contributed to the hours map
+                let uniqueSourceFiles = new Set();
+                recordsByCategory.forEach(list => { // Iterate over lists of records for each category
+                    list.forEach(rec => uniqueSourceFiles.add(rec.path));
+                });
+                const finalFilteredFileCount = uniqueSourceFiles.size;
+
+                return { hours, recordsByCategory, filteredRecordCount: finalFilteredFileCount, error: aggregationError };
+            }
+
+            updateAnalysis() {
+                if (this.records.length === 0) {
+                    document.getElementById('statsGrid').style.display = 'none';
+                    document.getElementById('chartContainer').style.display = 'none';
+                    return;
+                }
+
+                if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+                this.loadingToast = this.showStatus(`<span class="loading"></span> Updating analysis...`, 'info-persistent');
+                
+                const level = document.getElementById('levelSelect').value;
+                const pattern = document.getElementById('patternInput').value;
+                
+                setTimeout(() => { 
+                    this.currentAggregatedData = this.aggregate(level, pattern);
+                    // recordsByCategory is now part of currentAggregatedData
+                    const { hours, filteredRecordCount, error } = this.currentAggregatedData;
+
+
+                    if (this.loadingToast) {
+                        this.hideSpecificToast(this.loadingToast);
+                        this.loadingToast = null;
+                    }
+
+                    if (error) { 
+                        document.getElementById('statsGrid').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'none';
+                        // Clear previous chart if any
+                        const pieChartElement = document.getElementById('pieChart');
+                        if (pieChartElement) Plotly.purge(pieChartElement);
+                        return;
+                    }
+                    
+                    if (hours.size === 0) {
+                        this.showStatus('No data matches the current filters.', 'info', 3000);
+                        document.getElementById('statsGrid').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'none';
+                        const pieChartElement = document.getElementById('pieChart');
+                        if (pieChartElement) Plotly.purge(pieChartElement);
+                        return;
+                    }
+                    
+                    document.getElementById('statsGrid').style.display = 'grid';
+                    document.getElementById('chartContainer').style.display = 'block';
+                    const totalHours = Array.from(hours.values()).reduce((sum, h) => sum + h, 0);
+                    document.getElementById('totalHours').textContent = totalHours.toFixed(2);
+                    document.getElementById('totalFiles').textContent = filteredRecordCount; 
+                    document.getElementById('totalCategories').textContent = hours.size;
+                    this.renderPieChart(hours);
+                }, 50); 
+            }
+
+            renderPieChart(hoursData) {
+                const pieChartElement = document.getElementById('pieChart');
+                const labels = Array.from(hoursData.keys());
+                const values = Array.from(hoursData.values());
+                const data = [{
+                    type: 'pie',
+                    labels: labels, 
+                    values: values, 
+                    textinfo: 'label+percent', 
+                    textposition: 'outside',
+                    hoverinfo: 'label+value+percent',
+                    marker: {
+                        line: { color: 'white', width: 2 }
+                    }
+                }];
+                const layout = {
+                    title: {
+                        text: `Time Distribution by ${document.getElementById('levelSelect').selectedOptions[0].text.split('(')[0].trim()}`,
+                        font: { size: 18, color: '#2d3748' }
+                    },
+                    font: { family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' },
+                    showlegend: true,
+                    legend: { orientation: 'v', x: 1.05, y: 0.5 },
+                    margin: { t: 50, b: 50, l: 50, r: 150 }
+                };
+                const config = { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'] };
+                Plotly.newPlot('pieChart', data, layout, config);
+                
+                pieChartElement.removeAllListeners('plotly_click'); // Clear existing listeners
+                pieChartElement.on('plotly_click', (eventData) => {
+                    if (eventData.points && eventData.points.length > 0) {
+                        const categoryName = eventData.points[0].label;
+                        if (this.currentAggregatedData && this.currentAggregatedData.recordsByCategory && this.currentAggregatedData.recordsByCategory.has(categoryName)) {
+                            const recordsForCategory = this.currentAggregatedData.recordsByCategory.get(categoryName);
+                            this.showDetailPopup(categoryName, recordsForCategory);
+                        }
+                    }
+                });
+            }
+
+            showDetailPopup(categoryName, recordsList) {
+                document.getElementById('popupTitle').textContent = `Details for: ${categoryName}`;
+                
+                const categoryTotalHoursFromChart = (this.currentAggregatedData && this.currentAggregatedData.hours && this.currentAggregatedData.hours.get(categoryName)) || 0;
+                // recordsList contains the original records that contributed to this category.
+                // The number of source files is simply the length of this list.
+                const numSourceFiles = recordsList.length;
+                const avgDurationPerFile = numSourceFiles > 0 ? (categoryTotalHoursFromChart / numSourceFiles) : 0;
+
+                document.getElementById('popupSummaryStats').innerHTML = `
+                    <div class="summary-stat"><div class="summary-stat-value">${numSourceFiles}</div><div class="summary-stat-label">Source Files</div></div>
+                    <div class="summary-stat"><div class="summary-stat-value">${categoryTotalHoursFromChart.toFixed(2)}</div><div class="summary-stat-label">Total Hrs (Filtered)</div></div>
+                    <div class="summary-stat"><div class="summary-stat-value">${avgDurationPerFile.toFixed(2)}</div><div class="summary-stat-label">Avg. Hrs/File</div></div>`;
+                
+                const tableBody = document.getElementById('popupTableBody');
+                tableBody.innerHTML = ''; 
+                
+                recordsList.sort((a,b) => {
+                    if (a.date && b.date) return b.date - a.date; // Newest first
+                    if (a.date) return -1;
+                    if (b.date) return 1;
+                    return a.path.localeCompare(b.path); // Fallback to path sorting
+                });
+
+                const startDateStr = document.getElementById('startDate').value;
+                const endDateStr = document.getElementById('endDate').value;
+
+                recordsList.forEach(record => {
+                    const row = tableBody.insertRow();
+                    row.insertCell().innerHTML = `<span class="file-path-cell" title="${record.path}">${record.path}</span>`;
+                    row.insertCell().className = 'date-cell'; 
+                    row.cells[1].textContent = record.date ? record.date.toISOString().split('T')[0] : 'N/A';
+                    
+                    let displayDuration = record.duration; 
+                    if (record.metadata && record.metadata.type === 'recurring') {
+                        const numInstances = this.calculateRecurringInstancesInDateRange(
+                            record.metadata,
+                            startDateStr ? new Date(startDateStr) : null,
+                            endDateStr ? new Date(endDateStr) : null
+                        );
+                        // record.duration is per-instance for recurring types
+                        displayDuration = record.duration * numInstances; 
+                    } else {
+                        // For non-recurring, its duration is already its total.
+                        // We must check if it's within the date range for display consistency,
+                        // though aggregate() should have filtered it out if not.
+                        if (!this.isWithinDateRange(record.date, startDateStr, endDateStr)) {
+                             displayDuration = 0; // This file's specific instance is out of range
+                        }
+                    }
+                    row.insertCell().className = 'duration-cell'; 
+                    row.cells[2].textContent = displayDuration.toFixed(2);
+
+                    row.insertCell().className = 'project-cell'; 
+                    row.cells[3].textContent = record.project;
+                    row.insertCell().className = 'subproject-cell'; 
+                    row.cells[4].textContent = record.subprojectFull;
+                });
+                document.getElementById('detailOverlay').classList.add('visible');
+                document.getElementById('detailPopup').classList.add('visible');
+                document.body.style.overflow = 'hidden'; 
+            }
+
+            hideDetailPopup() {
+                document.getElementById('detailOverlay').classList.remove('visible');
+                document.getElementById('detailPopup').classList.remove('visible');
+                document.body.style.overflow = ''; 
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => new TimeAnalyzer());
+    </script>
+</body>
+</html>

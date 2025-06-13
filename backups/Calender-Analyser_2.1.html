@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Analysis Dashboard</title>
+    <script src="Self-development/plotly.min.js"></script>
+    <script src="Self-development/js-yaml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative; /* Crucial for z-index to take effect reliably against siblings */
+            z-index: 60;      /* Give it a z-index higher than .stats-grid and .stat-card */
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start; /* Align items to the top for consistent label alignment */
+            margin-bottom: 20px;
+        }
+
+        .control-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .date-input-group { /* Specific for date inputs */
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .date-range-group {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end; 
+            flex-wrap: wrap;
+        }
+        
+        .date-range-group .control-item {
+             min-width: auto; /* Allow items to shrink if needed */
+        }
+
+        .date-range-group label { 
+            margin-bottom: 8px; 
+        }
+
+        .date-range-group .clear-dates-btn-container {
+            display: flex;
+            align-items: flex-end; 
+            height: 100%;
+            padding-top: 28px; 
+        }
+        
+        .date-preset-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px; /* Space below date inputs */
+             align-items: center;
+        }
+        .date-preset-buttons button {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .date-preset-buttons button:hover {
+            background-color: #e0e0e0;
+        }
+
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        select, input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+            height: 48px; 
+        }
+
+        select:focus, input[type="text"]:focus, input[type="date"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            width: 100%;
+            justify-content: center;
+            height: 48px; 
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .chart-container, .log-container { /* Shared style for these sections */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 25px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3; 
+            border-top: 3px solid #667eea; 
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000; 
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .toast {
+            background-color: #333;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+            opacity: 0;
+            transform: translateX(20%);
+            transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            align-items: center;
+            min-width: 280px;
+            max-width: 400px;
+            font-size: 0.95rem;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast .loading { 
+            border-top-color: white; 
+            border-left-color: rgba(255,255,255,0.3); 
+            border-right-color: rgba(255,255,255,0.3);
+            border-bottom-color: rgba(255,255,255,0.3);
+        }
+
+        .toast.success { background-color: #4CAF50; } 
+        .toast.error { background-color: #f44336; }  
+        .toast.info { background-color: #2196F3; }   
+        .toast.warning { background-color: #ff9800; }
+        .toast.info-persistent { background-color: #555; } 
+
+
+        .detail-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95); 
+            background: white;
+            border-radius: 20px;
+            padding: 0; 
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            z-index: 1000;
+            max-width: 90vw;
+            width: 800px; 
+            max-height: 85vh;
+            overflow: hidden; 
+            display: none; 
+            opacity: 0;
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+
+        .detail-popup.visible {
+            display: flex; 
+            flex-direction: column;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 25px;
+            position: relative;
+            border-top-left-radius: 20px; 
+            border-top-right-radius: 20px; 
+        }
+
+        .popup-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            max-width: calc(100% - 50px); 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px; 
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        .popup-body {
+            padding: 25px;
+            flex-grow: 1; 
+            overflow-y: auto; 
+            background-color: #f8f9fa; 
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f2f5, #e6e9ed);
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .summary-stat {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .summary-stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 3px;
+        }
+
+        .summary-stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-table-container {
+            overflow-x: auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .detail-table th {
+            background: linear-gradient(135deg, #7385db, #8561b1); 
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky; 
+            top: 0;
+            z-index: 1;
+        }
+
+        .detail-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef; 
+            vertical-align: top;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .detail-table tr:nth-child(even) {
+            background-color: #f8f9fa; 
+        }
+        .detail-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .file-path-cell {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #4a5568;
+            max-width: 250px; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block; 
+        }
+
+        .duration-cell {
+            text-align: right;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .date-cell {
+            color: #4a5568;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .project-cell {
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .subproject-cell { 
+            color: #718096;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px); 
+            z-index: 999;
+            display: none; 
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+        .overlay.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        .clear-dates-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 12px 16px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            font-size: 1rem; 
+            transition: all 0.3s ease;
+            line-height: 1.5; 
+            height: 48px; 
+        }
+
+        .clear-dates-btn:hover {
+            background: #c53030;
+            transform: translateY(-1px);
+        }
+        
+        .autocomplete-wrapper {
+            position: relative;
+        }
+        .autocomplete-suggestions {
+            position: absolute;
+            border: 1px solid #ddd;
+            border-top: none;
+            z-index: 100;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .autocomplete-suggestions div {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 15px;
+            white-space: nowrap; /* Prevent text wrapping if items are long */
+            overflow: hidden;    /* Hide overflow */
+            text-overflow: ellipsis; /* Show ellipsis for long items */
+        }
+        .autocomplete-suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+        .autocomplete-suggestions div.active { /* For keyboard navigation */
+            background-color: #667eea;
+            color: white;
+        }
+        .file-input-button.needs-attention {
+            animation: shake 1.5s cubic-bezier(.36,.07,.19,.97) both; /* Play once, can be set to infinite if desired, or re-applied */
+            /* Consider a subtle border or color change too if shake is too much */
+            /* border: 2px solid #ff9800; */
+            /* background: linear-gradient(135deg, #ff9800, #f57c00); /* Example: orange gradient */
+        }
+        @keyframes shake {
+          10%, 90% {
+            transform: translate3d(-1px, 0, 0);
+          }
+          20%, 80% {
+            transform: translate3d(2px, 0, 0);
+          }
+          30%, 50%, 70% {
+            transform: translate3d(-3px, 0, 0); /* Reduced shake intensity */
+          }
+          40%, 60% {
+            transform: translate3d(3px, 0, 0); /* Reduced shake intensity */
+          }
+        }
+        /* Error Log Styles */
+        .log-container h2 {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .log-summary {
+            font-size: 1rem;
+            color: #4a5568;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .log-entry {
+            margin-bottom: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden; /* For rounded corners on details */
+        }
+        .log-entry summary {
+            padding: 12px 15px;
+            font-weight: 600;
+            background-color: #f9fafb;
+            cursor: pointer;
+            outline: none;
+            color: #374151;
+            display: block; /* Ensure full width clickable */
+            transition: background-color 0.2s ease;
+        }
+        .log-entry summary:hover {
+            background-color: #f3f4f6;
+        }
+        .log-entry summary::-webkit-details-marker {
+            margin-right: 8px;
+        }
+        .log-entry-content {
+            padding: 15px;
+            background-color: white;
+            font-size: 0.9rem;
+            color: #4b5563;
+            border-top: 1px solid #e2e8f0;
+        }
+        .log-entry-content strong {
+            color: #1f2937;
+        }
+
+        @media (max-width: 900px) {
+            .detail-popup {
+                width: 95vw;
+            }
+             #toastContainer {
+                right: 10px;
+                left: 10px;
+                top: 10px;
+                align-items: center; 
+            }
+            .toast {
+                width: auto; 
+                max-width: calc(100vw - 40px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-group {
+                flex-direction: column;
+            }
+            
+            .control-item {
+                min-width: 100%; 
+            }
+
+            .date-range-group {
+                flex-direction: column; 
+                width: 100%; 
+                align-items: stretch; /* Make children full width */
+            }
+            .date-range-group .control-item, .date-range-group .date-input-group {
+                width: 100%; 
+                 min-width: 100%;
+            }
+            .date-range-group .clear-dates-btn-container {
+                 width: 100%; 
+                 padding-top: 0; 
+                 margin-top: 10px; 
+            }
+            .clear-dates-btn {
+                width: 100%; 
+            }
+            .date-preset-buttons {
+                justify-content: space-around; /* Distribute buttons */
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .summary-stats {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+
+            .detail-table {
+                font-size: 0.85rem;
+            }
+
+            .file-path-cell {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Time Analysis Dashboard</h1>
+            <p>Interactive analysis of your time tracking data</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="folderInput">📁 Select Folder</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="folderInput" class="file-input" webkitdirectory directory multiple>
+                        <div class="file-input-button">
+                            <span>🗂️</span>
+                            <span>Choose Folder</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="levelSelect">📈 Analysis Level</label>
+                    <select id="levelSelect">
+                        <option value="hierarchy">Hierarchy (Top-level folders)</option>
+                        <option value="project">Project</option>
+                        <option value="subproject">Sub-project</option>
+                    </select>
+                </div>
+                
+                <div class="control-item" id="hierarchyFilterContainer" style="display: none;">
+                    <label for="hierarchyFilterInput">📂 Filter by Hierarchy</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="hierarchyFilterInput" placeholder="All Hierarchies (type to filter...)">
+                        <div class="autocomplete-suggestions" id="hierarchySuggestions"></div>
+                    </div>
+                </div>
+                
+                <div class="control-item" id="projectFilterContainer" style="display: none;">
+                    <label for="projectFilterInput">📋 Filter by Project</label>
+                     <div class="autocomplete-wrapper">
+                        <input type="text" id="projectFilterInput" placeholder="All Projects (type to filter...)">
+                        <div class="autocomplete-suggestions" id="projectSuggestions"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="patternInput">🔍 Additional Filter Pattern (Optional)</label>
+                    <input type="text" id="patternInput" placeholder="e.g., Project.*|Task.*">
+                </div>
+                
+                <div class="control-item"> 
+                    <div class="date-range-group">
+                        <div class="date-input-group">
+                            <label for="startDate">📅 Start Date</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        
+                        <div class="date-input-group">
+                            <label for="endDate">📅 End Date</label>
+                            <input type="date" id="endDate">
+                        </div>
+                        
+                        <div class="clear-dates-btn-container"> 
+                             <button class="clear-dates-btn" id="clearDatesBtn" title="Clear date filters">
+                                🗑️ Clear Dates
+                            </button>
+                        </div>
+                        <div class="clear-dates-btn-container">
+                             <button id="clearCacheBtn" class="clear-dates-btn" style="background-color: #f57c00;" title="Clear all cached file data from local storage">
+                                🧹 Clear Cache
+                            </button>
+                        </div>
+                    </div>
+                     <div class="date-preset-buttons">
+                        <button id="setTodayBtn">Today</button>
+                        <button id="setYesterdayBtn">Yesterday</button>
+                        <button id="setThisWeekBtn">This Week</button>
+                        <button id="setThisMonthBtn">This Month</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalHours">0</div>
+                <div class="stat-label">Total Hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalFiles">0</div>
+                <div class="stat-label">Files Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCategories">0</div>
+                <div class="stat-label">Categories</div>
+            </div>
+        </div>
+
+        <div class="chart-container" id="chartContainer" style="display: none;">
+            <div id="pieChart"></div>
+        </div>
+
+        <div class="log-container" id="errorLogContainer" style="display: none;">
+            <h2>📋 Processing Log & Issues</h2>
+            <!-- New element for cache status -->
+            <div id="cacheStatusDisplay" class="log-summary" style="margin-bottom: 15px; background-color: #eef2ff; border-color: #c7d2fe; padding: 12px 15px; font-size: 0.95rem;">
+                <!-- Cache status will be injected here by JavaScript -->
+            </div>
+            <div class="log-summary" id="errorLogSummary">No issues found.</div>
+            <div id="errorLogEntries"></div>
+        </div>
+
+    <div class="overlay" id="detailOverlay"></div>
+    <div class="detail-popup" id="detailPopup">
+        <div class="popup-header">
+            <h2 class="popup-title" id="popupTitle">Category Details</h2>
+            <button class="close-btn" id="popupCloseBtn" title="Close">×</button>
+        </div>
+        <div class="popup-body">
+            <div class="summary-stats" id="popupSummaryStats"></div>
+            <div class="detail-table-container">
+                <table class="detail-table" id="popupDetailTable">
+                    <thead>
+                        <tr>
+                            <th>File Path</th>
+                            <th>Date</th>
+                            <th>Duration (hrs)</th>
+                            <th>Project</th>
+                            <th>Sub-project (Full)</th> 
+                        </tr>
+                    </thead>
+                    <tbody id="popupTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    class TimeAnalyzer {
+    constructor() {
+        this.records = [];
+        this.processingErrors = [];
+        this.cache = new Map();
+        this.currentAggregatedData = null;
+        this.loadingToast = null;
+        this.localStorageKey = 'timeAnalyzerFileCache';
+        this.uiStateKey = 'timeAnalyzerUIState';
+        this.cacheTimestampKey = 'timeAnalyzerCacheTimestamp'; // New key for timestamp
+        this.cacheTimestamp = null; // Holds the loaded timestamp
+        this.cacheWarningToast = null; // To manage the warning toast
+
+        this.allHierarchies = [];
+        this.allProjects = [];
+
+        this.loadCacheFromLocalStorage(); // This will also load the timestamp
+        this.initializeEventListeners();
+        this.loadUIState(); // Load UI state after event listeners
+        this.updateCacheStatusDisplay(); // Initial check and display of cache status
+    }
+
+        initializeEventListeners() {
+            document.getElementById('folderInput').addEventListener('change', (e) => this.handleFolderSelect(e));
+            document.getElementById('levelSelect').addEventListener('change', () => {
+                this.handleLevelChange();
+                this.saveUIState();
+            });
+
+            this.setupAutocomplete('hierarchyFilterInput', 'hierarchySuggestions', () => this.allHierarchies, () => {
+                this.updateAnalysis();
+                this.saveUIState();
+            });
+            this.setupAutocomplete('projectFilterInput', 'projectSuggestions', () => this.allProjects, () => {
+                this.updateAnalysis();
+                this.saveUIState();
+            });
+
+            document.getElementById('patternInput').addEventListener('input', () => this.debounce(() => {
+                this.updateAnalysis();
+                this.saveUIState();
+            }, 300)());
+
+            document.getElementById('startDate').addEventListener('change', () => {
+                this.updateAnalysis();
+                this.saveUIState();
+            });
+            document.getElementById('endDate').addEventListener('change', () => {
+                this.updateAnalysis();
+                this.saveUIState();
+            });
+            document.getElementById('clearDatesBtn').addEventListener('click', () => this.clearDateFilters());
+            document.getElementById('clearCacheBtn').addEventListener('click', () => this.clearLocalStorageCache());
+
+            document.getElementById('setTodayBtn').addEventListener('click', () => this.setPresetDateRange('today'));
+            document.getElementById('setYesterdayBtn').addEventListener('click', () => this.setPresetDateRange('yesterday'));
+            document.getElementById('setThisWeekBtn').addEventListener('click', () => this.setPresetDateRange('thisWeek'));
+            document.getElementById('setThisMonthBtn').addEventListener('click', () => this.setPresetDateRange('thisMonth'));
+
+            document.getElementById('popupCloseBtn').addEventListener('click', () => this.hideDetailPopup());
+            document.getElementById('detailOverlay').addEventListener('click', () => this.hideDetailPopup());
+        }
+
+        saveUIState() {
+            const state = {
+                levelSelect: document.getElementById('levelSelect').value,
+                hierarchyFilter: document.getElementById('hierarchyFilterInput').value,
+                projectFilter: document.getElementById('projectFilterInput').value,
+                patternInput: document.getElementById('patternInput').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+            };
+            localStorage.setItem(this.uiStateKey, JSON.stringify(state));
+        }
+
+        loadUIState() {
+            const savedState = localStorage.getItem(this.uiStateKey);
+            if (savedState) {
+                try {
+                    const state = JSON.parse(savedState);
+                    document.getElementById('levelSelect').value = state.levelSelect || 'hierarchy';
+                    document.getElementById('hierarchyFilterInput').value = state.hierarchyFilter || '';
+                    document.getElementById('projectFilterInput').value = state.projectFilter || '';
+                    document.getElementById('patternInput').value = state.patternInput || '';
+                    document.getElementById('startDate').value = state.startDate || '';
+                    document.getElementById('endDate').value = state.endDate || '';
+                    
+                    this.handleLevelChange(false); 
+                    
+                    if (this.records.length > 0) {
+                        this.updateAnalysis();
+                    }
+
+                } catch (error) {
+                    console.error("Error loading UI state from localStorage:", error);
+                    localStorage.removeItem(this.uiStateKey);
+                }
+            } else {
+                this.handleLevelChange(false); 
+            }
+        }
+        
+        // --- Autocomplete Implementation ---
+        setupAutocomplete(inputId, suggestionsId, getDataFunc, onSelectCallback) {
+            const input = document.getElementById(inputId);
+            const suggestionsContainer = document.getElementById(suggestionsId);
+            let activeSuggestionIndex = -1;
+
+            // Helper to populate suggestions
+            const populateSuggestions = (items) => {
+                suggestionsContainer.innerHTML = '';
+                activeSuggestionIndex = -1; // Reset index when suggestions change
+                if (items.length > 0) {
+                    items.forEach((item) => {
+                        const div = document.createElement('div');
+                        div.textContent = item;
+                        div.addEventListener('click', () => {
+                            input.value = item;
+                            suggestionsContainer.innerHTML = '';
+                            suggestionsContainer.style.display = 'none';
+                            onSelectCallback(); // Item selected
+                        });
+                        suggestionsContainer.appendChild(div);
+                    });
+                    suggestionsContainer.style.display = 'block';
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            };
+
+            input.addEventListener('focus', () => {
+                const value = input.value.toLowerCase().trim();
+                const data = getDataFunc();
+                let itemsToShow;
+                if (value === '') {
+                    itemsToShow = data; // Show all if input is empty on focus
+                } else {
+                    // If input has text on focus, show suggestions filtered by that text
+                    itemsToShow = data.filter(item => item.toLowerCase().includes(value));
+                }
+                populateSuggestions(itemsToShow);
+            });
+
+            input.addEventListener('input', () => {
+                const value = input.value.toLowerCase().trim(); // Use trim here for consistency
+                const data = getDataFunc();
+                let filteredData;
+
+                if (value === '') {
+                    // If input is cleared by typing, show all suggestions again
+                    filteredData = data;
+                    onSelectCallback(); // Treat cleared input as "All" selection for filter
+                } else {
+                    filteredData = data.filter(item => item.toLowerCase().includes(value));
+                }
+                populateSuggestions(filteredData);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                // Get current suggestions dynamically within keydown
+                let currentSuggestions = Array.from(suggestionsContainer.children);
+
+                if (suggestionsContainer.style.display === 'none' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                    // If suggestions are hidden and user presses arrow keys, show them based on current input value
+                    const value = input.value.toLowerCase().trim();
+                    const data = getDataFunc();
+                    let itemsToShow = value === '' ? data : data.filter(item => item.toLowerCase().includes(value));
+                    populateSuggestions(itemsToShow);
+                    currentSuggestions = Array.from(suggestionsContainer.children); // Update after populating
+                }
+                
+                if (currentSuggestions.length === 0 && !(e.key === 'Enter' && input.value.trim() !== '')) {
+                    // Allow Enter if input has value but no suggestions match (for direct filter)
+                    if (e.key !== 'Escape') return; // Allow Escape to always work
+                }
+
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (currentSuggestions.length > 0) {
+                        activeSuggestionIndex = (activeSuggestionIndex + 1) % currentSuggestions.length;
+                        this.updateActiveSuggestion(currentSuggestions, activeSuggestionIndex);
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentSuggestions.length > 0) {
+                        activeSuggestionIndex = (activeSuggestionIndex - 1 + currentSuggestions.length) % currentSuggestions.length;
+                        this.updateActiveSuggestion(currentSuggestions, activeSuggestionIndex);
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (activeSuggestionIndex > -1 && currentSuggestions[activeSuggestionIndex]) {
+                        currentSuggestions[activeSuggestionIndex].click(); // This will call onSelectCallback
+                    } else if (input.value.trim() !== '') {
+                        // If user typed something and pressed Enter.
+                        // Check if it's an exact match to any suggestion (even if not highlighted).
+                        const exactMatch = getDataFunc().find(s => s.toLowerCase() === input.value.trim().toLowerCase());
+                        if (exactMatch) { // If there's an exact match in the original data source
+                            input.value = exactMatch; // Normalize casing if needed
+                            suggestionsContainer.innerHTML = '';
+                            suggestionsContainer.style.display = 'none';
+                            onSelectCallback();
+                        } else {
+                            // No exact match, but input has value. Treat as direct filter value.
+                            suggestionsContainer.innerHTML = '';
+                            suggestionsContainer.style.display = 'none';
+                            onSelectCallback(); // The filter will use current input.value
+                        }
+                    } else { // Input is empty and enter is pressed
+                        suggestionsContainer.innerHTML = '';
+                        suggestionsContainer.style.display = 'none';
+                        onSelectCallback(); // Treat as "All"
+                    }
+                } else if (e.key === 'Escape') {
+                    suggestionsContainer.innerHTML = '';
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+            
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+        }
+
+        updateActiveSuggestion(suggestions, index) {
+            suggestions.forEach((suggestion, i) => {
+                suggestion.classList.toggle('active', i === index);
+            });
+        }
+
+        setPresetDateRange(preset) {
+            const today = new Date();
+            let startDate, endDate;
+
+            switch (preset) {
+                case 'today':
+                    startDate = today;
+                    endDate = today;
+                    break;
+                case 'yesterday':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 1);
+                    endDate = startDate;
+                    break;
+                case 'thisWeek': 
+                    startDate = new Date(today);
+                    const dayOfWeek = today.getDay(); // Sunday = 0, Monday = 1, ...
+                    const diffToSunday = dayOfWeek; // Number of days to subtract to get to Sunday
+                    startDate.setDate(today.getDate() - diffToSunday);
+                    endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 6);
+                    break;
+                case 'thisMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    break;
+            }
+            
+            const formatDate = (date) => date.toISOString().split('T')[0];
+            document.getElementById('startDate').value = formatDate(startDate);
+            document.getElementById('endDate').value = formatDate(endDate);
+            this.updateAnalysis();
+            this.saveUIState();
+        }
+
+        loadCacheFromLocalStorage() {
+            try {
+                const cachedData = localStorage.getItem(this.localStorageKey);
+                const storedTimestamp = localStorage.getItem(this.cacheTimestampKey);
+
+                if (storedTimestamp) {
+                    this.cacheTimestamp = parseInt(storedTimestamp, 10);
+                } else {
+                    this.cacheTimestamp = null;
+                }
+
+                if (cachedData) {
+                    const parsedCache = JSON.parse(cachedData);
+                    if (Array.isArray(parsedCache)) {
+                        this.cache = new Map(parsedCache.map(([key, record]) => {
+                            if (record.date && typeof record.date === 'string') {
+                                record.date = new Date(record.date);
+                            }
+                            return [key, record];
+                        }));
+                        if (this.cache.size > 0) {
+                            console.log(`Loaded ${this.cache.size} items from local storage cache.`);
+                            this.records = Array.from(this.cache.values());
+                            this.populateFilterDataSources();
+                        }
+                    } else {
+                        this.cache = new Map();
+                        localStorage.removeItem(this.localStorageKey);
+                        localStorage.removeItem(this.cacheTimestampKey); // Also remove timestamp if cache is invalid
+                        this.cacheTimestamp = null;
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading cache from localStorage:", error);
+                this.cache = new Map();
+                this.cacheTimestamp = null;
+            }
+            // this.updateCacheStatusDisplay(); // Called in constructor after this
+        }
+
+        saveCacheToLocalStorage() {
+            try {
+                const serializableCache = Array.from(this.cache.entries());
+                localStorage.setItem(this.localStorageKey, JSON.stringify(serializableCache));
+                
+                this.cacheTimestamp = Date.now(); // Set current timestamp
+                localStorage.setItem(this.cacheTimestampKey, this.cacheTimestamp.toString());
+                
+                console.log(`Saved ${this.cache.size} items to local storage cache. Timestamp: ${new Date(this.cacheTimestamp).toLocaleString()}`);
+            } catch (error) {
+                console.error("Error saving cache to localStorage:", error);
+                if (error.name === 'QuotaExceededError') {
+                    this.showStatus('Cache storage limit reached. Consider clearing cache.', 'error', 7000);
+                }
+            }
+            this.updateCacheStatusDisplay(); // Update display after saving
+        }
+
+        clearLocalStorageCache() {
+            try {
+                localStorage.removeItem(this.localStorageKey);
+                localStorage.removeItem(this.cacheTimestampKey); // Clear timestamp
+                this.cache = new Map();
+                this.records = [];
+                this.processingErrors = [];
+                this.cacheTimestamp = null; // Reset in-memory timestamp
+                
+                this.renderErrorLog();
+                this.showStatus('Local storage cache cleared. Please re-select a folder.', 'success');
+                this.populateFilterDataSources(); 
+                this.updateCacheStatusDisplay(); // Update display after clearing
+                this.updateAnalysis();
+            } catch (error) {
+                console.error("Error clearing local storage cache:", error);
+                this.showStatus('Error clearing cache.', 'error');
+            }
+        }
+        
+        formatTimeAgo(timestamp) {
+            if (!timestamp) return 'never';
+            const now = Date.now();
+            const seconds = Math.round((now - timestamp) / 1000);
+
+            if (seconds < 2) return 'just now';
+            if (seconds < 60) return `${seconds} seconds ago`;
+
+            const minutes = Math.round(seconds / 60);
+            if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+
+            const hours = Math.round(minutes / 60);
+            if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+
+            const days = Math.round(hours / 24);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+
+        updateCacheStatusDisplay() {
+            const cacheStatusEl = document.getElementById('cacheStatusDisplay');
+            const chooseFolderButton = document.querySelector('.file-input-button'); // The visible button div
+
+            if (!cacheStatusEl || !chooseFolderButton) {
+                console.warn("Cache status display elements not found.");
+                return;
+            }
+
+            // Always remove attention class first
+            chooseFolderButton.classList.remove('needs-attention');
+            // Clear previous warning toast if it exists
+            if (this.cacheWarningToast) {
+                this.hideSpecificToast(this.cacheWarningToast);
+                this.cacheWarningToast = null;
+            }
+
+            if (this.cacheTimestamp) {
+                const lastUpdateDate = new Date(this.cacheTimestamp);
+                const timeAgo = this.formatTimeAgo(this.cacheTimestamp);
+                let statusText = `Local cache last updated: <strong>${lastUpdateDate.toLocaleString()}</strong> (${timeAgo}).`;
+
+                const ageInMs = Date.now() - this.cacheTimestamp;
+                const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
+
+                // Only warn if there's actually data in the cache that's old
+                if (ageInMs > twentyFourHoursInMs && this.cache.size > 0) {
+                    statusText += `<br><strong style="color: #c2410c;">Warning: Cache is older than 24 hours.</strong> Consider re-selecting the folder to ensure you are using the latest data.`;
+                    
+                    // Show a persistent toast that the user might need to manually close or that disappears after a long time
+                    this.cacheWarningToast = this.showStatus(
+                        'Cache data is > 24 hours old. Re-select folder for latest data.',
+                        'warning', // type
+                        30000    // duration (30 seconds, or use 'info-persistent' and handle dismissal)
+                    );
+                    
+                    chooseFolderButton.classList.add('needs-attention');
+                    // Re-trigger animation by removing and adding class if it was already there from a previous check
+                    // This is simple and works for one-shot animations.
+                    // For infinite, just adding is fine. For re-triggering one-shot, a slight delay might be needed or this:
+                    chooseFolderButton.style.animation = 'none';
+                    chooseFolderButton.offsetHeight; /* trigger reflow */
+                    chooseFolderButton.style.animation = ''; 
+                    chooseFolderButton.classList.add('needs-attention');
+
+
+                    if (navigator.vibrate) {
+                        navigator.vibrate([150, 50, 150]); // A short vibration pattern
+                    }
+                }
+                cacheStatusEl.innerHTML = statusText;
+            } else {
+                cacheStatusEl.innerHTML = 'Local cache is empty or has not been created yet.';
+            }
+        }
+        
+        debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        clearDateFilters() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            this.updateAnalysis();
+            this.saveUIState();
+        }
+
+        showStatus(message, type = 'info', duration = 5000) {
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                console.error("Toast container not found. Message:", message);
+                return null;
+            }
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = message; 
+            toastContainer.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.add('visible');
+            });
+            if (type !== 'info-persistent') { 
+                setTimeout(() => {
+                    this.hideSpecificToast(toast);
+                }, duration);
+            }
+            return toast;
+        }
+
+        hideSpecificToast(toastElement) {
+            if (toastElement && toastElement.parentNode) {
+                toastElement.classList.remove('visible');
+                toastElement.addEventListener('transitionend', () => {
+                    if (toastElement.parentNode) {
+                        toastElement.parentNode.removeChild(toastElement);
+                    }
+                }, { once: true });
+            }
+        }
+
+        async handleFolderSelect(event) {
+            // When folder is selected, the cache will be updated, so any old cache warnings should clear.
+            // The updateCacheStatusDisplay() called after processFiles will handle this.
+            const files = Array.from(event.target.files);
+            const mdFiles = files.filter(file => file.name.toLowerCase().endsWith('.md'));
+            
+            if (mdFiles.length === 0) {
+                this.showStatus('No .md files found in the selected folder.', 'error');
+                return;
+            }
+            if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+            this.loadingToast = this.showStatus(`<span class="loading"></span> Processing ${mdFiles.length} markdown files...`, 'info-persistent');
+            await this.processFiles(mdFiles);
+        }
+
+        async processFiles(files) {
+            this.records = []; 
+            this.processingErrors = []; 
+            let processedFreshly = 0;
+            let usedFromCache = 0;
+            const newCacheForThisSession = new Map();
+
+            for (const file of files) {
+                const cacheKey = `${file.webkitRelativePath}-${file.lastModified}`;
+                
+                if (this.cache.has(cacheKey)) {
+                    const cachedRecord = this.cache.get(cacheKey);
+                    this.records.push(cachedRecord);
+                    newCacheForThisSession.set(cacheKey, cachedRecord);
+                    usedFromCache++;
+                } else {
+                    try {
+                        const record = await this.parseFile(file);
+                        if (record) {
+                            this.records.push(record);
+                            newCacheForThisSession.set(cacheKey, record); 
+                            processedFreshly++;
+                        }
+                    } catch (error) {
+                        console.warn(`Skipping ${file.webkitRelativePath}: ${error.message}`);
+                        this.processingErrors.push({
+                            file: file.name,
+                            path: file.webkitRelativePath,
+                            reason: error.message
+                        });
+                    }
+                }
+            }
+            
+            this.cache = newCacheForThisSession;
+            this.saveCacheToLocalStorage();
+
+            if (this.loadingToast) {
+                this.hideSpecificToast(this.loadingToast);
+                this.loadingToast = null;
+            }
+
+            let statusMessage = `Processed: ${processedFreshly} new, ${usedFromCache} from cache. Total valid: ${this.records.length}.`;
+            if (this.processingErrors.length > 0) statusMessage += ` Issues: ${this.processingErrors.length}.`;
+            
+            const messageType = (this.records.length) > 0 ? 'success' : (this.processingErrors.length > 0 ? 'warning' : 'info');
+            this.showStatus(statusMessage, messageType);
+            
+            this.populateFilterDataSources(); 
+            this.renderErrorLog();          
+            this.updateAnalysis(); 
+        }
+        
+        async parseFile(file) {
+            const content = await file.text();
+            const pathParts = file.webkitRelativePath.split('/');
+            const hierarchy = pathParts.length > 2 ? pathParts[1] : (pathParts.length === 2 && pathParts[0] !== "" ? pathParts[0] : 'root');
+            
+            const filenameRegex = /^(?:(\d{4}-\d{2}-\d{2})\s+(.+?)\s+-\s+(.+?)(?:\s+([IVXLCDM\d]+))?|(?:\(([^)]+)\)\s*)(.+?)(?:\s*-\s*(.+?))?(?:\s+([IVXLCDM\d]+))?)\.md$/i;
+            const filenameMatch = file.name.match(filenameRegex);
+
+            if (!filenameMatch) {
+                throw new Error('Filename pattern mismatch.');
+            }
+
+            let dateStr, projectFromFile, subprojectRaw, serialFromFile;
+            if (filenameMatch[1]) { 
+                dateStr = filenameMatch[1];
+                projectFromFile = filenameMatch[2];
+                subprojectRaw = filenameMatch[3]; 
+                serialFromFile = filenameMatch[4];
+            } else { 
+                projectFromFile = filenameMatch[6];
+                subprojectRaw = filenameMatch[7]; 
+                serialFromFile = filenameMatch[8];
+            }
+            
+            const yamlMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+            if (!yamlMatch) throw new Error('No YAML front matter found.');
+            let metadata;
+            try { metadata = jsyaml.load(yamlMatch[1]); } 
+            catch (error) { throw new Error(`Invalid YAML: ${error.message}`); }
+
+            if (!metadata || typeof metadata !== 'object') {
+                throw new Error('YAML front matter is empty or not an object.');
+            }
+            if (!metadata.startTime || !metadata.endTime) throw new Error('Missing startTime or endTime in YAML.');
+            
+            let eventDuration;
+            if (metadata.type === 'recurring') {
+                if (metadata.startTime && metadata.endTime) {
+                    eventDuration = this.calculateDuration(metadata.startTime, metadata.endTime, 1);
+                } else {
+                    eventDuration = 0; // Duration is 0 if recurring but times are missing
+                }
+            } else {
+                eventDuration = this.calculateDuration(metadata.startTime, metadata.endTime, metadata.days);
+            }
+            
+            let recordDate = null;
+            if (dateStr) { // Date from filename YYYY-MM-DD
+                // Split and construct to avoid timezone issues with new Date(string)
+                const [year, month, day] = dateStr.split('-').map(Number);
+                recordDate = new Date(Date.UTC(year, month - 1, day));
+            } else if (metadata.date) { // Date from YAML
+                const metaDateVal = metadata.date;
+                if (metaDateVal instanceof Date && !isNaN(metaDateVal.getTime())) {
+                    recordDate = new Date(Date.UTC(metaDateVal.getFullYear(), metaDateVal.getMonth(), metaDateVal.getDate()));
+                } else {
+                    const metaDateStr = metaDateVal.toString();
+                    const dateParts = metaDateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (dateParts) {
+                        const [year, month, day] = dateParts.slice(1).map(Number);
+                        recordDate = new Date(Date.UTC(year, month - 1, day));
+                    } else {
+                        // Fallback, try direct parsing, but this can be risky with timezones
+                        let parsedFallback = new Date(metaDateStr);
+                        if (!isNaN(parsedFallback.getTime())) {
+                            recordDate = new Date(Date.UTC(parsedFallback.getFullYear(), parsedFallback.getMonth(), parsedFallback.getDate()));
+                        }
+                    }
+                }
+            }
+            if (recordDate && isNaN(recordDate.getTime())) { // Final check
+                throw new Error(`Invalid date in filename or YAML: ${dateStr || metadata.date}`);
+            }
+
+            const finalProject = projectFromFile.trim();
+            let baseSubproject = 'none';
+            let fullSubproject = 'none';
+
+            if (subprojectRaw) {
+                subprojectRaw = subprojectRaw.trim();
+                const subprojectSerialMatch = subprojectRaw.match(/^(.*?)\s+([IVXLCDM\d]+)$/);
+                if (subprojectSerialMatch) {
+                    baseSubproject = subprojectSerialMatch[1].trim();
+                    serialFromFile = serialFromFile || subprojectSerialMatch[2];
+                } else {
+                    baseSubproject = subprojectRaw;
+                }
+                fullSubproject = baseSubproject;
+                if (serialFromFile) {
+                    fullSubproject += ` ${serialFromFile.trim()}`;
+                }
+            }
+            if (baseSubproject === "") baseSubproject = 'none';
+            fullSubproject = fullSubproject.trim(); // Ensure no leading/trailing spaces
+            if (fullSubproject === "") fullSubproject = 'none';
+
+
+            return {
+                path: file.webkitRelativePath,
+                hierarchy: hierarchy, 
+                project: finalProject,
+                subproject: baseSubproject, 
+                subprojectFull: fullSubproject, 
+                duration: eventDuration, 
+                file: file.name,
+                date: recordDate, 
+                metadata: metadata
+            };
+        }
+
+
+        calculateDuration(startTime, endTime, days = 1) {
+            const parseTime = (timeStr) => {
+                if (typeof timeStr === 'number') { 
+                    const hours = Math.floor(timeStr);
+                    const minutes = Math.round((timeStr - hours) * 60); 
+                    return { hours, minutes };
+                }
+                const timeMatch = String(timeStr).match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                if (timeMatch) return { hours: parseInt(timeMatch[1]), minutes: parseInt(timeMatch[2]) };
+                try { // Handle full ISO date strings if YAML parser produces them
+                    const d = new Date(timeStr); 
+                    if (!isNaN(d.getTime())) return { hours: d.getUTCHours(), minutes: d.getUTCMinutes() };
+                } catch(e) { /* ignore */ }
+                throw new Error(`Invalid time: ${timeStr}. Use HH:MM or decimal.`);
+            };
+            try {
+                const start = parseTime(startTime), end = parseTime(endTime);
+                let startMinutes = start.hours * 60 + start.minutes;
+                let endMinutes = end.hours * 60 + end.minutes;
+                if (endMinutes < startMinutes) endMinutes += 24 * 60; 
+                const durationForOneDay = (endMinutes - startMinutes) / 60;
+                return durationForOneDay * (Math.max(0, Number(days) || 0)); // Ensure days is non-negative
+            } catch (error) {
+                console.warn(`Duration calc error: ${error.message} (s:${startTime}, e:${endTime}, d:${days})`);
+                return 0; 
+            }
+        }
+        
+        getDayOfWeekNumber(dayChar) {
+            const mapping = { 'U': 0, 'M': 1, 'T': 2, 'W': 3, 'R': 4, 'F': 5, 'S': 6 }; // Sunday=0
+            const upperDayChar = String(dayChar).trim().toUpperCase();
+            return mapping.hasOwnProperty(upperDayChar) ? mapping[upperDayChar] : undefined;
+        }
+
+        calculateRecurringInstancesInDateRange(metadata, filterStartDate, filterEndDate) {
+            const { startRecur: metaStartRecurStr, endRecur: metaEndRecurStr, daysOfWeek: metaDaysOfWeek } = metadata;
+            if (!metaStartRecurStr || !metaDaysOfWeek || typeof metaDaysOfWeek === 'undefined') return 0;
+
+            let recurrenceStart;
+            const startRecurParts = String(metaStartRecurStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if(startRecurParts) recurrenceStart = new Date(Date.UTC(Number(startRecurParts[1]), Number(startRecurParts[2])-1, Number(startRecurParts[3])));
+            else { recurrenceStart = new Date(metaStartRecurStr); if(!isNaN(recurrenceStart)) recurrenceStart = new Date(Date.UTC(recurrenceStart.getFullYear(), recurrenceStart.getMonth(), recurrenceStart.getDate()));}
+            if (isNaN(recurrenceStart.getTime())) return 0;
+
+
+            let recurrenceEnd = new Date(Date.UTC(9999, 11, 31)); // Far future
+            if(metaEndRecurStr) {
+                const endRecurParts = String(metaEndRecurStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if(endRecurParts) recurrenceEnd = new Date(Date.UTC(Number(endRecurParts[1]), Number(endRecurParts[2])-1, Number(endRecurParts[3])));
+                else { recurrenceEnd = new Date(metaEndRecurStr); if(!isNaN(recurrenceEnd)) recurrenceEnd = new Date(Date.UTC(recurrenceEnd.getFullYear(), recurrenceEnd.getMonth(), recurrenceEnd.getDate()));}
+                if (isNaN(recurrenceEnd.getTime())) recurrenceEnd = new Date(Date.UTC(9999, 11, 31)); // Reset if invalid
+            }
+            
+
+            let effectiveStart = new Date(recurrenceStart.getTime()); // Clone
+            if (filterStartDate && !isNaN(filterStartDate.getTime())) {
+                const normFilterStart = new Date(Date.UTC(filterStartDate.getUTCFullYear(), filterStartDate.getUTCMonth(), filterStartDate.getUTCDate()));
+                effectiveStart = new Date(Math.max(recurrenceStart.getTime(), normFilterStart.getTime()));
+            }
+
+            let effectiveEnd = new Date(recurrenceEnd.getTime()); // Clone
+            if (filterEndDate && !isNaN(filterEndDate.getTime())) {
+                const normFilterEnd = new Date(Date.UTC(filterEndDate.getUTCFullYear(), filterEndDate.getUTCMonth(), filterEndDate.getUTCDate()));
+                effectiveEnd = new Date(Math.min(recurrenceEnd.getTime(), normFilterEnd.getTime()));
+            }
+
+            if (effectiveStart > effectiveEnd) return 0; 
+
+            const rawDaysOfWeekArray = Array.isArray(metaDaysOfWeek) ? metaDaysOfWeek : String(metaDaysOfWeek).replace(/[\[\]\s]/g, '').split(',');
+            const targetDays = rawDaysOfWeekArray.map(d => this.getDayOfWeekNumber(d)).filter(d => d !== undefined);
+            if (targetDays.length === 0) return 0;
+
+            let count = 0;
+            let currentDate = new Date(effectiveStart.getTime()); 
+            
+            while (currentDate <= effectiveEnd) {
+                if (targetDays.includes(currentDate.getUTCDay())) {
+                    count++;
+                }
+                currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+            }
+            return count;
+        }
+
+        populateFilterDataSources() {
+            this.allHierarchies = [...new Set(this.records.map(r => r.hierarchy))].sort();
+            this.allProjects = [...new Set(this.records.map(r => r.project))].sort();
+        }
+
+        handleLevelChange(triggerAnalysis = true) {
+            const level = document.getElementById('levelSelect').value;
+            const hierarchyContainer = document.getElementById('hierarchyFilterContainer');
+            const projectContainer = document.getElementById('projectFilterContainer');
+            
+            hierarchyContainer.style.display = (level === 'project' || level === 'subproject') ? 'block' : 'none';
+            projectContainer.style.display = (level === 'subproject') ? 'block' : 'none';
+
+            if (level === 'hierarchy') {
+                document.getElementById('hierarchyFilterInput').value = '';
+                document.getElementById('projectFilterInput').value = '';
+                document.getElementById('hierarchySuggestions').style.display = 'none';
+                document.getElementById('projectSuggestions').style.display = 'none';
+            } else if (level === 'project') {
+                document.getElementById('projectFilterInput').value = '';
+                document.getElementById('projectSuggestions').style.display = 'none';
+            }
+
+            if (triggerAnalysis) {
+                this.updateAnalysis();
+            }
+        }
+        
+        isWithinDateRange(recordDateObj, filterStartDateStr, filterEndDateStr) {
+            if (!recordDateObj || isNaN(recordDateObj.getTime())) return false; 
+
+            let filterStartDate = null;
+            if (filterStartDateStr) {
+                const [year, month, day] = filterStartDateStr.split('-').map(Number);
+                filterStartDate = new Date(Date.UTC(year, month - 1, day));
+            }
+            if (filterStartDate && isNaN(filterStartDate.getTime())) filterStartDate = null;
+
+
+            let filterEndDate = null;
+            if (filterEndDateStr) {
+                const [year, month, day] = filterEndDateStr.split('-').map(Number);
+                filterEndDate = new Date(Date.UTC(year, month - 1, day));
+            }
+            if (filterEndDate && isNaN(filterEndDate.getTime())) filterEndDate = null;
+
+
+            if (!filterStartDate && !filterEndDate) return true;
+            
+            // recordDateObj is already UTC midnight from parseFile
+            
+            if (filterStartDate && recordDateObj < filterStartDate) return false;
+            if (filterEndDate && recordDateObj > filterEndDate) return false;
+            
+            return true;
+        }
+
+
+        aggregate(level, pattern = null) {
+            const hours = new Map();
+            const recordsByCategory = new Map(); 
+            const hierarchyFilter = document.getElementById('hierarchyFilterInput').value.trim().toLowerCase();
+            const projectFilter = document.getElementById('projectFilterInput').value.trim().toLowerCase();
+            const startDateStr = document.getElementById('startDate').value;
+            const endDateStr = document.getElementById('endDate').value;
+            
+            let filterStartDate = null;
+            if (startDateStr) {
+                const [year, month, day] = startDateStr.split('-').map(Number);
+                filterStartDate = new Date(Date.UTC(year, month - 1, day));
+            }
+            if (filterStartDate && isNaN(filterStartDate.getTime())) filterStartDate = null;
+            
+            let filterEndDate = null;
+            if (endDateStr) {
+                const [year, month, day] = endDateStr.split('-').map(Number);
+                filterEndDate = new Date(Date.UTC(year, month - 1, day));
+            }
+            if (filterEndDate && isNaN(filterEndDate.getTime())) filterEndDate = null;
+
+            let regex = null;
+            let aggregationError = false;
+
+            if (pattern && pattern.trim()) {
+                try { regex = new RegExp(pattern.trim(), 'i'); } 
+                catch (error) {
+                    this.showStatus(`Invalid Regex pattern: ${error.message}`, 'error');
+                    aggregationError = true;
+                    return { hours, recordsByCategory, filteredRecordCount: 0, error: aggregationError };
+                }
+            }
+
+            for (const record of this.records) {
+                if (hierarchyFilter && record.hierarchy.toLowerCase() !== hierarchyFilter) continue;
+                if (projectFilter && record.project.toLowerCase() !== projectFilter) continue;
+
+                let currentRecordDuration = record.duration; 
+
+                if (record.metadata && record.metadata.type === 'recurring') {
+                    if (!record.metadata.startRecur || !record.metadata.daysOfWeek || record.duration === 0) {
+                        currentRecordDuration = 0; 
+                    } else {
+                        const numInstances = this.calculateRecurringInstancesInDateRange(
+                            record.metadata, filterStartDate, filterEndDate
+                        );
+                        currentRecordDuration = record.duration * numInstances;
+                    }
+                } else { // Non-recurring
+                    if (!this.isWithinDateRange(record.date, startDateStr, endDateStr)) {
+                        continue; 
+                    }
+                }
+                
+                const key = record[level]; 
+                if (regex && !regex.test(key)) continue;
+                if (currentRecordDuration <= 0) continue;
+
+                hours.set(key, (hours.get(key) || 0) + currentRecordDuration);
+                if (!recordsByCategory.has(key)) recordsByCategory.set(key, []);
+                recordsByCategory.get(key).push(record); 
+            }
+            
+            let uniqueSourceFiles = new Set();
+            recordsByCategory.forEach(list => list.forEach(rec => uniqueSourceFiles.add(rec.path)));
+            const finalFilteredFileCount = uniqueSourceFiles.size;
+
+            return { hours, recordsByCategory, filteredRecordCount: finalFilteredFileCount, error: aggregationError };
+        }
+
+        updateAnalysis() {
+            if (this.records.length === 0 && this.processingErrors.length === 0) { 
+                document.getElementById('statsGrid').style.display = 'none';
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('errorLogContainer').style.display = 'none';
+                const pieChartElement = document.getElementById('pieChart');
+                if (pieChartElement && pieChartElement.data) Plotly.purge(pieChartElement);
+                return;
+            }
+
+            if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+            this.loadingToast = this.showStatus(`<span class="loading"></span> Updating analysis...`, 'info-persistent');
+            
+            const level = document.getElementById('levelSelect').value;
+            const pattern = document.getElementById('patternInput').value;
+            
+            setTimeout(() => { 
+                this.currentAggregatedData = this.aggregate(level, pattern);
+                const { hours, filteredRecordCount, error } = this.currentAggregatedData;
+
+                if (this.loadingToast) {
+                    this.hideSpecificToast(this.loadingToast);
+                    this.loadingToast = null;
+                }
+                
+                this.renderErrorLog(); 
+
+                if (error) { 
+                    document.getElementById('statsGrid').style.display = 'none';
+                    document.getElementById('chartContainer').style.display = 'none';
+                    const pieChartElement = document.getElementById('pieChart');
+                    if (pieChartElement && pieChartElement.data) Plotly.purge(pieChartElement);
+                    return;
+                }
+                
+                if (hours.size === 0) {
+                    if (this.records.length > 0) {
+                        this.showStatus('No data matches the current filters.', 'info', 3000);
+                    }
+                    document.getElementById('statsGrid').style.display = 'none';
+                    document.getElementById('chartContainer').style.display = 'none';
+                    const pieChartElement = document.getElementById('pieChart');
+                    if (pieChartElement && pieChartElement.data) Plotly.purge(pieChartElement);
+                    return;
+                }
+                
+                document.getElementById('statsGrid').style.display = 'grid';
+                document.getElementById('chartContainer').style.display = 'block';
+                const totalHours = Array.from(hours.values()).reduce((sum, h) => sum + h, 0);
+                document.getElementById('totalHours').textContent = totalHours.toFixed(2);
+                document.getElementById('totalFiles').textContent = filteredRecordCount; 
+                document.getElementById('totalCategories').textContent = hours.size;
+                this.renderPieChart(hours);
+            }, 50); 
+            this.saveUIState(); 
+        }
+
+        renderPieChart(hoursData) {
+            const pieChartElement = document.getElementById('pieChart');
+            const labels = Array.from(hoursData.keys());
+            const values = Array.from(hoursData.values());
+            const data = [{
+                type: 'pie',
+                labels: labels, 
+                values: values, 
+                textinfo: 'label+percent', 
+                textposition: 'outside',
+                hoverinfo: 'label+value+percent',
+                automargin: true,
+                marker: {
+                    line: { color: 'white', width: 2 }
+                }
+            }];
+            const layout = {
+                title: {
+                    text: `Time Distribution by ${document.getElementById('levelSelect').selectedOptions[0].text.split('(')[0].trim()}`,
+                    font: { size: 18, color: '#2d3748' }
+                },
+                font: { family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' },
+                showlegend: true,
+                legend: { orientation: 'v', x: 1.05, y: 0.5, traceorder: 'normal' }, 
+                margin: { t: 50, b: 20, l: 20, r: 20 }, 
+                height: 500 
+            };
+            const config = { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'] };
+            Plotly.newPlot('pieChart', data, layout, config);
+            
+            if (pieChartElement.removeAllListeners) pieChartElement.removeAllListeners('plotly_click'); 
+            pieChartElement.on('plotly_click', (eventData) => {
+                if (eventData.points && eventData.points.length > 0) {
+                    const categoryName = eventData.points[0].label;
+                    if (this.currentAggregatedData && this.currentAggregatedData.recordsByCategory && this.currentAggregatedData.recordsByCategory.has(categoryName)) {
+                        const recordsForCategory = this.currentAggregatedData.recordsByCategory.get(categoryName);
+                        this.showDetailPopup(categoryName, recordsForCategory);
+                    }
+                }
+            });
+        }
+
+        renderErrorLog() {
+            const errorLogContainer = document.getElementById('errorLogContainer');
+            const errorLogSummary = document.getElementById('errorLogSummary');
+            const errorLogEntries = document.getElementById('errorLogEntries');
+
+            errorLogEntries.innerHTML = ''; 
+
+            if (this.processingErrors.length === 0) {
+                errorLogSummary.textContent = 'No processing issues found for the last selected folder.';
+                errorLogContainer.style.display = this.records.length > 0 || this.cache.size > 0 || this.processingErrors.length > 0 ? 'block' : 'none'; 
+                return;
+            }
+
+            errorLogSummary.textContent = `Found ${this.processingErrors.length} issue(s) during file processing:`;
+            
+            this.processingErrors.forEach(err => {
+                const details = document.createElement('details');
+                details.className = 'log-entry';
+                const summary = document.createElement('summary');
+                summary.textContent = `⚠️ ${err.file || 'Unknown File'}`;
+                const content = document.createElement('div');
+                content.className = 'log-entry-content';
+                content.innerHTML = `
+                    <strong>Path:</strong> ${err.path || 'N/A'}<br>
+                    <strong>Reason:</strong> ${err.reason || 'No specific reason provided.'}
+                `;
+                details.appendChild(summary);
+                details.appendChild(content);
+                errorLogEntries.appendChild(details);
+            });
+            errorLogContainer.style.display = 'block';
+        }
+
+
+        showDetailPopup(categoryName, recordsList) {
+            document.getElementById('popupTitle').textContent = `Details for: ${categoryName}`;
+            
+            const categoryTotalHoursFromChart = (this.currentAggregatedData && this.currentAggregatedData.hours && this.currentAggregatedData.hours.get(categoryName)) || 0;
+            const numSourceFiles = new Set(recordsList.map(r => r.path)).size;
+            const avgDurationPerFile = numSourceFiles > 0 ? (categoryTotalHoursFromChart / numSourceFiles) : 0;
+
+            document.getElementById('popupSummaryStats').innerHTML = `
+                <div class="summary-stat"><div class="summary-stat-value">${numSourceFiles}</div><div class="summary-stat-label">Unique Files</div></div>
+                <div class="summary-stat"><div class="summary-stat-value">${categoryTotalHoursFromChart.toFixed(2)}</div><div class="summary-stat-label">Total Hrs (Filtered)</div></div>
+                <div class="summary-stat"><div class="summary-stat-value">${avgDurationPerFile.toFixed(2)}</div><div class="summary-stat-label">Avg. Hrs/File</div></div>`;
+            
+            const tableBody = document.getElementById('popupTableBody');
+            tableBody.innerHTML = ''; 
+            
+            recordsList.sort((a,b) => {
+                if (a.date && b.date) return b.date - a.date; 
+                if (a.date) return -1; if (b.date) return 1;
+                return a.path.localeCompare(b.path);
+            });
+
+            const startDateStr = document.getElementById('startDate').value;
+            const endDateStr = document.getElementById('endDate').value;
+            
+            let filterStartDate = null;
+            if (startDateStr) {
+                const [year, month, day] = startDateStr.split('-').map(Number);
+                filterStartDate = new Date(Date.UTC(year, month - 1, day));
+            }
+            if (filterStartDate && isNaN(filterStartDate.getTime())) filterStartDate = null;
+
+            let filterEndDate = null;
+            if (endDateStr) {
+                const [year, month, day] = endDateStr.split('-').map(Number);
+                filterEndDate = new Date(Date.UTC(year, month - 1, day));
+            }
+            if (filterEndDate && isNaN(filterEndDate.getTime())) filterEndDate = null;
+
+
+            recordsList.forEach(record => {
+                const row = tableBody.insertRow();
+                row.insertCell().innerHTML = `<span class="file-path-cell" title="${record.path}">${record.path}</span>`;
+                row.insertCell().className = 'date-cell'; 
+                row.cells[1].textContent = record.date ? record.date.toISOString().split('T')[0] : (record.metadata.type === 'recurring' ? 'Recurring' : 'N/A');
+                
+                let displayDuration = record.duration; 
+                if (record.metadata && record.metadata.type === 'recurring') {
+                    const numInstances = this.calculateRecurringInstancesInDateRange(
+                        record.metadata, filterStartDate, filterEndDate
+                    );
+                    displayDuration = record.duration * numInstances; 
+                }
+                row.insertCell().className = 'duration-cell'; 
+                row.cells[2].textContent = displayDuration.toFixed(2);
+
+                row.insertCell().className = 'project-cell'; 
+                row.cells[3].textContent = record.project;
+                row.insertCell().className = 'subproject-cell'; 
+                row.cells[4].textContent = record.subprojectFull;
+            });
+            document.getElementById('detailOverlay').classList.add('visible');
+            document.getElementById('detailPopup').classList.add('visible');
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        hideDetailPopup() {
+            document.getElementById('detailOverlay').classList.remove('visible');
+            document.getElementById('detailPopup').classList.remove('visible');
+            document.body.style.overflow = ''; 
+        }
+}
+        document.addEventListener('DOMContentLoaded', () => {
+            window.timeAnalyzerApp = new TimeAnalyzer();
+        });
+    </script>
+</body>
+</html>

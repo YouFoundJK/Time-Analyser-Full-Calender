@@ -1,0 +1,2333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Analysis Dashboard</title>
+    <script src="Self-development/plotly.min.js"></script>
+    <script src="Self-development/js-yaml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative; /* Crucial for z-index to take effect reliably against siblings */
+            z-index: 60;      /* Give it a z-index higher than .stats-grid and .stat-card */
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start; /* Align items to the top for consistent label alignment */
+            margin-bottom: 20px;
+        }
+
+        .control-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .date-input-group { /* Specific for date inputs */
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .date-range-group {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end; 
+            flex-wrap: wrap;
+        }
+        
+        .date-range-group .control-item {
+             min-width: auto; /* Allow items to shrink if needed */
+        }
+
+        .date-range-group label { 
+            margin-bottom: 8px; 
+        }
+
+        .date-range-group .clear-dates-btn-container {
+            display: flex;
+            align-items: flex-end; 
+            height: 100%;
+            padding-top: 28px; 
+        }
+        
+        .date-preset-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px; /* Space below date inputs */
+             align-items: center;
+        }
+        .date-preset-buttons button {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .date-preset-buttons button:hover {
+            background-color: #e0e0e0;
+        }
+
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        select, input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+            height: 48px; 
+        }
+
+        select:focus, input[type="text"]:focus, input[type="date"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            width: 100%;
+            justify-content: center;
+            height: 48px; 
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .chart-container, .log-container { /* Shared style for these sections */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 25px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3; 
+            border-top: 3px solid #667eea; 
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000; 
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .toast {
+            background-color: #333;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+            opacity: 0;
+            transform: translateX(20%);
+            transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            align-items: center;
+            min-width: 280px;
+            max-width: 400px;
+            font-size: 0.95rem;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast .loading { 
+            border-top-color: white; 
+            border-left-color: rgba(255,255,255,0.3); 
+            border-right-color: rgba(255,255,255,0.3);
+            border-bottom-color: rgba(255,255,255,0.3);
+        }
+
+        .toast.success { background-color: #4CAF50; } 
+        .toast.error { background-color: #f44336; }  
+        .toast.info { background-color: #2196F3; }   
+        .toast.warning { background-color: #ff9800; }
+        .toast.info-persistent { background-color: #555; } 
+
+
+        .detail-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95); 
+            background: white;
+            border-radius: 20px;
+            padding: 0; 
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            z-index: 1000;
+            max-width: 90vw;
+            width: 800px; 
+            max-height: 85vh;
+            overflow: hidden; 
+            display: none; 
+            opacity: 0;
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+
+        .detail-popup.visible {
+            display: flex; 
+            flex-direction: column;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 25px;
+            position: relative;
+            border-top-left-radius: 20px; 
+            border-top-right-radius: 20px; 
+        }
+
+        .popup-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            max-width: calc(100% - 50px); 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px; 
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        .popup-body {
+            padding: 25px;
+            flex-grow: 1; 
+            overflow-y: auto; 
+            background-color: #f8f9fa; 
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f2f5, #e6e9ed);
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .summary-stat {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .summary-stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 3px;
+        }
+
+        .summary-stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-table-container {
+            overflow-x: auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .detail-table th {
+            background: linear-gradient(135deg, #7385db, #8561b1); 
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky; 
+            top: 0;
+            z-index: 1;
+        }
+
+        .detail-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef; 
+            vertical-align: top;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .detail-table tr:nth-child(even) {
+            background-color: #f8f9fa; 
+        }
+        .detail-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .file-path-cell {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #4a5568;
+            max-width: 250px; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block; 
+        }
+
+        .duration-cell {
+            text-align: right;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .date-cell {
+            color: #4a5568;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .project-cell {
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .subproject-cell { 
+            color: #718096;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px); 
+            z-index: 999;
+            display: none; 
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+        .overlay.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        .clear-dates-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 12px 16px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            font-size: 1rem; 
+            transition: all 0.3s ease;
+            line-height: 1.5; 
+            height: 48px; 
+        }
+
+        .clear-dates-btn:hover {
+            background: #c53030;
+            transform: translateY(-1px);
+        }
+        
+        .autocomplete-wrapper {
+            position: relative;
+            display: flex; 
+            align-items: center;        
+        }
+        .autocomplete-wrapper input[type="text"] {
+            flex-grow: 1;
+            padding-right: 30px; /* Space for the clear button */
+        }
+        .clear-input-btn {
+            position: absolute;
+            right: 10px; 
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #aaa;
+            font-size: 20px; 
+            font-weight: bold;
+            padding: 0 5px; 
+            line-height: 1; 
+            z-index: 2; 
+        }
+
+        .clear-input-btn:hover {
+            color: #333;
+        }
+
+        .autocomplete-suggestions {
+            position: absolute;
+            border: 1px solid #ddd;
+            border-top: none;
+            z-index: 1500; 
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .autocomplete-suggestions div {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 15px;
+            white-space: nowrap; 
+            overflow: hidden;    
+            text-overflow: ellipsis; 
+        }
+        .autocomplete-suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+        .autocomplete-suggestions div.active { 
+            background-color: #667eea;
+            color: white;
+        }
+        .file-input-button.needs-attention {
+            animation: shake 1.5s cubic-bezier(.36,.07,.19,.97) both; 
+        }
+        @keyframes shake {
+          10%, 90% {
+            transform: translate3d(-1px, 0, 0);
+          }
+          20%, 80% {
+            transform: translate3d(2px, 0, 0);
+          }
+          30%, 50%, 70% {
+            transform: translate3d(-3px, 0, 0); 
+          }
+          40%, 60% {
+            transform: translate3d(3px, 0, 0); 
+          }
+        }
+        /* Error Log Styles */
+        .log-container h2 {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .log-summary {
+            font-size: 1rem;
+            color: #4a5568;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .log-entry {
+            margin-bottom: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden; 
+        }
+        .log-entry summary {
+            padding: 12px 15px;
+            font-weight: 600;
+            background-color: #f9fafb;
+            cursor: pointer;
+            outline: none;
+            color: #374151;
+            display: block; 
+            transition: background-color 0.2s ease;
+        }
+        .log-entry summary:hover {
+            background-color: #f3f4f6;
+        }
+        .log-entry summary::-webkit-details-marker {
+            margin-right: 8px;
+        }
+        .log-entry-content {
+            padding: 15px;
+            background-color: white;
+            font-size: 0.9rem;
+            color: #4b5563;
+            border-top: 1px solid #e2e8f0;
+        }
+        .log-entry-content strong {
+            color: #1f2937;
+        }
+
+        @media (max-width: 900px) {
+            .detail-popup {
+                width: 95vw;
+            }
+             #toastContainer {
+                right: 10px;
+                left: 10px;
+                top: 10px;
+                align-items: center; 
+            }
+            .toast {
+                width: auto; 
+                max-width: calc(100vw - 40px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-group {
+                flex-direction: column;
+            }
+            
+            .control-item {
+                min-width: 100%; 
+            }
+
+            .date-range-group {
+                flex-direction: column; 
+                width: 100%; 
+                align-items: stretch; 
+            }
+            .date-range-group .control-item, .date-range-group .date-input-group {
+                width: 100%; 
+                 min-width: 100%;
+            }
+            .date-range-group .clear-dates-btn-container {
+                 width: 100%; 
+                 padding-top: 0; 
+                 margin-top: 10px; 
+            }
+            .clear-dates-btn {
+                width: 100%; 
+            }
+            .date-preset-buttons {
+                justify-content: space-around; 
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .summary-stats {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+
+            .detail-table {
+                font-size: 0.85rem;
+            }
+
+            .file-path-cell {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Time Analysis Dashboard</h1>
+            <p>Interactive analysis of your time tracking data</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="folderInput">📁 Select Folder</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="folderInput" class="file-input" webkitdirectory directory multiple>
+                        <div class="file-input-button">
+                            <span>🗂️</span>
+                            <span>Choose Folder</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="levelSelect">📈 Analysis Level</label>
+                    <select id="levelSelect">
+                        <option value="hierarchy">Hierarchy (Top-level folders)</option>
+                        <option value="project">Project</option>
+                        <option value="subproject">Sub-project</option>
+                    </select>
+                </div>
+                
+                <div class="control-item" id="hierarchyFilterContainer" style="display: none;">
+                    <label for="hierarchyFilterInput">📂 Filter by Hierarchy</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="hierarchyFilterInput" placeholder="All Hierarchies (type to filter...)">
+                        <span class="clear-input-btn" id="clearHierarchyFilterBtn" style="display: none;">×</span>
+                        <div class="autocomplete-suggestions" id="hierarchySuggestions"></div>
+                    </div>
+                </div>
+                
+                <div class="control-item" id="projectFilterContainer" style="display: none;">
+                    <label for="projectFilterInput">📋 Filter by Project</label>
+                     <div class="autocomplete-wrapper">
+                        <input type="text" id="projectFilterInput" placeholder="All Projects (type to filter...)">
+                        <span class="clear-input-btn" id="clearProjectFilterBtn" style="display: none;">×</span>
+                        <div class="autocomplete-suggestions" id="projectSuggestions"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="patternInput">🔍 Additional Filter Pattern (Optional)</label>
+                    <input type="text" id="patternInput" placeholder="e.g., Project.*|Task.*">
+                </div>
+                
+                <div class="control-item"> 
+                    <div class="date-range-group">
+                        <div class="date-input-group">
+                            <label for="startDate">📅 Start Date</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        
+                        <div class="date-input-group">
+                            <label for="endDate">📅 End Date</label>
+                            <input type="date" id="endDate">
+                        </div>
+                        
+                        <div class="clear-dates-btn-container"> 
+                             <button class="clear-dates-btn" id="clearDatesBtn" title="Clear date filters">
+                                🗑️ Clear Dates
+                            </button>
+                        </div>
+                        <div class="clear-dates-btn-container">
+                             <button id="clearCacheBtn" class="clear-dates-btn" style="background-color: #f57c00;" title="Clear all cached file data from local storage">
+                                🧹 Clear Cache
+                            </button>
+                        </div>
+                    </div>
+                     <div class="date-preset-buttons">
+                        <button id="setTodayBtn">Today</button>
+                        <button id="setYesterdayBtn">Yesterday</button>
+                        <button id="setThisWeekBtn">This Week</button>
+                        <button id="setThisMonthBtn">This Month</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalHours">0</div>
+                <div class="stat-label">Total Hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalFiles">0</div>
+                <div class="stat-label">Files Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCategories">0</div>
+                <div class="stat-label">Categories</div>
+            </div>
+        </div>
+
+        <div class="chart-container" id="chartContainer" style="display: none;">
+            <div id="pieChart"></div>
+        </div>
+
+        <div class="log-container" id="errorLogContainer" style="display: none;">
+            <h2>📋 Processing Log & Issues</h2>
+            <div id="cacheStatusDisplay" class="log-summary" style="margin-bottom: 15px; background-color: #eef2ff; border-color: #c7d2fe; padding: 12px 15px; font-size: 0.95rem;">
+            </div>
+            <div class="log-summary" id="errorLogSummary">No issues found.</div>
+            <div id="errorLogEntries"></div>
+        </div>
+
+    <div class="overlay" id="detailOverlay"></div>
+    <div class="detail-popup" id="detailPopup">
+        <div class="popup-header">
+            <h2 class="popup-title" id="popupTitle">Category Details</h2>
+            <button class="close-btn" id="popupCloseBtn" title="Close">×</button>
+        </div>
+        <div class="popup-body">
+            <div class="summary-stats" id="popupSummaryStats"></div>
+            <div class="detail-table-container">
+                <table class="detail-table" id="popupDetailTable">
+                    <thead>
+                        <tr>
+                            <th>File Path</th>
+                            <th>Date</th>
+                            <th>Duration (hrs)</th>
+                            <th>Project</th>
+                            <th>Sub-project (Full)</th> 
+                        </tr>
+                    </thead>
+                    <tbody id="popupTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    class TimeAnalyzer {
+        constructor() {
+            console.info('[TimeAnalyzer] Initializing TimeAnalyzer...');
+            this.records = [];
+            this.processingErrors = [];
+            this.cache = new Map();
+            this.currentAggregatedData = null;
+            this.loadingToast = null;
+            this.localStorageKey = 'timeAnalyzerFileCache';
+            this.uiStateKey = 'timeAnalyzerUIState';
+            this.cacheTimestampKey = 'timeAnalyzerCacheTimestamp';
+            this.cacheTimestamp = null;
+            this.cacheWarningToast = null;
+
+            this.allHierarchies = [];
+            this.allProjects = [];
+
+            this.loadCacheFromLocalStorage();
+            this.initializeEventListeners();
+            this.loadUIState(); 
+            this.updateCacheStatusDisplay();
+            console.info('[TimeAnalyzer] Initialization complete.');
+        }
+
+        initializeEventListeners() {
+            console.log('[TimeAnalyzer.initializeEventListeners] Setting up event listeners...');
+            const folderInputEl = document.getElementById('folderInput');
+            if (folderInputEl) folderInputEl.addEventListener('change', (e) => this.handleFolderSelect(e));
+            else console.error("[TimeAnalyzer.initializeEventListeners] #folderInput not found");
+
+            const levelSelectEl = document.getElementById('levelSelect');
+            if (levelSelectEl) levelSelectEl.addEventListener('change', () => this.handleLevelChange());
+            else console.error("[TimeAnalyzer.initializeEventListeners] #levelSelect not found");
+
+
+            this.setupAutocomplete('hierarchyFilterInput', 'hierarchySuggestions', () => this.allHierarchies, () => {
+                console.log('[TimeAnalyzer.initializeEventListeners] Hierarchy filter selected/changed.');
+                this.updateAnalysis();
+            });
+            this.setupAutocomplete('projectFilterInput', 'projectSuggestions', () => this.allProjects, () => {
+                console.log('[TimeAnalyzer.initializeEventListeners] Project filter selected/changed.');
+                this.updateAnalysis();
+            });
+
+            const patternInputEl = document.getElementById('patternInput');
+            if (patternInputEl) {
+                patternInputEl.addEventListener('input', () => this.debounce(() => {
+                    console.log('[TimeAnalyzer.initializeEventListeners] Pattern input changed.');
+                    this.updateAnalysis();
+                }, 300)());
+            } else console.error("[TimeAnalyzer.initializeEventListeners] #patternInput not found");
+
+
+            const startDateEl = document.getElementById('startDate');
+            if (startDateEl) startDateEl.addEventListener('change', () => {
+                console.log('[TimeAnalyzer.initializeEventListeners] Start date changed.');
+                this.updateAnalysis();
+            });
+            else console.error("[TimeAnalyzer.initializeEventListeners] #startDate not found");
+
+            const endDateEl = document.getElementById('endDate');
+            if (endDateEl) endDateEl.addEventListener('change', () => {
+                console.log('[TimeAnalyzer.initializeEventListeners] End date changed.');
+                this.updateAnalysis();
+            });
+            else console.error("[TimeAnalyzer.initializeEventListeners] #endDate not found");
+            
+            const clearDatesBtnEl = document.getElementById('clearDatesBtn');
+            if (clearDatesBtnEl) clearDatesBtnEl.addEventListener('click', () => this.clearDateFilters());
+            else console.error("[TimeAnalyzer.initializeEventListeners] #clearDatesBtn not found");
+
+            const clearCacheBtnEl = document.getElementById('clearCacheBtn');
+            if (clearCacheBtnEl) clearCacheBtnEl.addEventListener('click', () => this.clearLocalStorageCache());
+            else console.error("[TimeAnalyzer.initializeEventListeners] #clearCacheBtn not found");
+
+
+            const setTodayBtnEl = document.getElementById('setTodayBtn');
+            if (setTodayBtnEl) setTodayBtnEl.addEventListener('click', () => this.setPresetDateRange('today'));
+            else console.error("[TimeAnalyzer.initializeEventListeners] #setTodayBtn not found");
+
+            const setYesterdayBtnEl = document.getElementById('setYesterdayBtn');
+            if (setYesterdayBtnEl) setYesterdayBtnEl.addEventListener('click', () => this.setPresetDateRange('yesterday'));
+            else console.error("[TimeAnalyzer.initializeEventListeners] #setYesterdayBtn not found");
+
+            const setThisWeekBtnEl = document.getElementById('setThisWeekBtn');
+            if (setThisWeekBtnEl) setThisWeekBtnEl.addEventListener('click', () => this.setPresetDateRange('thisWeek'));
+            else console.error("[TimeAnalyzer.initializeEventListeners] #setThisWeekBtn not found");
+
+            const setThisMonthBtnEl = document.getElementById('setThisMonthBtn');
+            if (setThisMonthBtnEl) setThisMonthBtnEl.addEventListener('click', () => this.setPresetDateRange('thisMonth'));
+            else console.error("[TimeAnalyzer.initializeEventListeners] #setThisMonthBtn not found");
+
+
+            const popupCloseBtnEl = document.getElementById('popupCloseBtn');
+            if (popupCloseBtnEl) popupCloseBtnEl.addEventListener('click', () => this.hideDetailPopup());
+            else console.error("[TimeAnalyzer.initializeEventListeners] #popupCloseBtn not found");
+
+            const detailOverlayEl = document.getElementById('detailOverlay');
+            if (detailOverlayEl) detailOverlayEl.addEventListener('click', () => this.hideDetailPopup());
+            else console.error("[TimeAnalyzer.initializeEventListeners] #detailOverlay not found");
+            console.log('[TimeAnalyzer.initializeEventListeners] Event listeners setup complete.');
+        }
+
+        saveUIState() {
+            const state = {
+                levelSelect: document.getElementById('levelSelect')?.value,
+                hierarchyFilter: document.getElementById('hierarchyFilterInput')?.value,
+                projectFilter: document.getElementById('projectFilterInput')?.value,
+                patternInput: document.getElementById('patternInput')?.value,
+                startDate: document.getElementById('startDate')?.value,
+                endDate: document.getElementById('endDate')?.value,
+            };
+            const validState = Object.fromEntries(Object.entries(state).filter(([_, v]) => v !== undefined));
+            if (Object.keys(validState).length > 0) {
+                 localStorage.setItem(this.uiStateKey, JSON.stringify(validState));
+                 console.log('[TimeAnalyzer.saveUIState] UI state saved to localStorage:', validState);
+            } else {
+                console.log('[TimeAnalyzer.saveUIState] No valid UI state to save.');
+            }
+        }
+        
+        _updateAutocompleteClearButtonVisibility(inputElement) {
+            if (!inputElement) return;
+            const wrapper = inputElement.closest('.autocomplete-wrapper');
+            if (wrapper) {
+                const clearButton = wrapper.querySelector('.clear-input-btn');
+                if (clearButton) {
+                    clearButton.style.display = inputElement.value.length > 0 ? 'inline' : 'none';
+                }
+            }
+        }
+
+        loadUIState() {
+            console.log('[TimeAnalyzer.loadUIState] Attempting to load UI state from localStorage...');
+            const savedState = localStorage.getItem(this.uiStateKey);
+            if (savedState) {
+                try {
+                    const state = JSON.parse(savedState);
+                    console.log('[TimeAnalyzer.loadUIState] Found saved state:', state);
+                    
+                    const levelSelect = document.getElementById('levelSelect');
+                    if (levelSelect && state.levelSelect !== undefined) {
+                        if (Array.from(levelSelect.options).some(opt => opt.value === state.levelSelect)) {
+                            levelSelect.value = state.levelSelect;
+                        } else {
+                            console.warn(`[TimeAnalyzer.loadUIState] Saved levelSelect value "${state.levelSelect}" is not a valid option. Using default.`);
+                        }
+                    }
+                    
+                    const hierarchyFilterInput = document.getElementById('hierarchyFilterInput');
+                    if (hierarchyFilterInput && state.hierarchyFilter !== undefined) {
+                         hierarchyFilterInput.value = state.hierarchyFilter;
+                         this._updateAutocompleteClearButtonVisibility(hierarchyFilterInput);
+                    }
+                    
+                    const projectFilterInput = document.getElementById('projectFilterInput');
+                    if (projectFilterInput && state.projectFilter !== undefined) {
+                        projectFilterInput.value = state.projectFilter;
+                        this._updateAutocompleteClearButtonVisibility(projectFilterInput);
+                    }
+
+                    const patternInput = document.getElementById('patternInput');
+                    if (patternInput && state.patternInput !== undefined) patternInput.value = state.patternInput;
+                    
+                    const startDateInput = document.getElementById('startDate');
+                    if (startDateInput && state.startDate !== undefined) startDateInput.value = state.startDate;
+
+                    const endDateInput = document.getElementById('endDate');
+                    if (endDateInput && state.endDate !== undefined) endDateInput.value = state.endDate;
+                    
+                    this.handleLevelChange(false); 
+                    
+                    if (this.records.length > 0) {
+                        console.log('[TimeAnalyzer.loadUIState] Records exist, triggering updateAnalysis after loading UI state.');
+                        this.updateAnalysis();
+                    }
+                    console.log('[TimeAnalyzer.loadUIState] UI state loaded and applied.');
+
+                } catch (error) {
+                    console.error("[TimeAnalyzer.loadUIState] Error loading UI state from localStorage:", error);
+                    localStorage.removeItem(this.uiStateKey);
+                }
+            } else {
+                console.log('[TimeAnalyzer.loadUIState] No UI state found in localStorage. Applying default visibility for filters.');
+                this.handleLevelChange(false); 
+            }
+        }
+
+        setupAutocomplete(inputId, suggestionsId, getDataFunc, onSelectCallback) {
+            console.log(`[TimeAnalyzer.setupAutocomplete] Setting up autocomplete for input: #${inputId}, suggestions: #${suggestionsId}`);
+            const input = document.getElementById(inputId);
+            const suggestionsContainer = document.getElementById(suggestionsId);
+
+            if (!input || !suggestionsContainer) {
+                console.error(`[TimeAnalyzer.setupAutocomplete] Autocomplete setup failed: input "${inputId}" or suggestions "${suggestionsId}" not found.`);
+                return;
+            }
+
+            let clearButtonId;
+            if (inputId === 'hierarchyFilterInput') clearButtonId = 'clearHierarchyFilterBtn';
+            else if (inputId === 'projectFilterInput') clearButtonId = 'clearProjectFilterBtn';
+            
+            const clearButton = clearButtonId ? document.getElementById(clearButtonId) : null;
+            if (clearButtonId && !clearButton) console.error(`[TimeAnalyzer.setupAutocomplete] Clear button "#${clearButtonId}" not found for autocomplete.`);
+
+            let activeSuggestionIndex = -1;
+
+            const updateClearButtonVisibility = () => {
+                if (clearButton) {
+                    clearButton.style.display = input.value.length > 0 ? 'inline' : 'none';
+                }
+            };
+
+            const populateSuggestions = (items) => {
+                suggestionsContainer.innerHTML = '';
+                activeSuggestionIndex = -1;
+                if (items.length > 0) {
+                    // console.debug(`[TimeAnalyzer.setupAutocomplete.${inputId}] Populating ${items.length} suggestions.`);
+                    items.forEach((item) => {
+                        const div = document.createElement('div');
+                        div.textContent = item;
+                        div.addEventListener('click', () => {
+                            console.log(`[TimeAnalyzer.setupAutocomplete.${inputId}] Suggestion '${item}' clicked.`);
+                            input.value = item;
+                            suggestionsContainer.innerHTML = '';
+                            suggestionsContainer.style.display = 'none';
+                            updateClearButtonVisibility();
+                            if (onSelectCallback) onSelectCallback();
+                        });
+                        suggestionsContainer.appendChild(div);
+                    });
+                    suggestionsContainer.style.display = 'block';
+                } else {
+                    // console.debug(`[TimeAnalyzer.setupAutocomplete.${inputId}] No suggestions to populate.`);
+                    suggestionsContainer.style.display = 'none';
+                }
+            };
+
+            input.addEventListener('focus', () => {
+                // console.debug(`[TimeAnalyzer.setupAutocomplete.${inputId}] Input focused.`);
+                const value = input.value.toLowerCase().trim();
+                const data = getDataFunc();
+                let itemsToShow = value === '' ? data : data.filter(item => item.toLowerCase().includes(value));
+                populateSuggestions(itemsToShow);
+                updateClearButtonVisibility();
+            });
+
+            input.addEventListener('input', () => {
+                updateClearButtonVisibility();
+                const value = input.value.toLowerCase().trim();
+                // console.debug(`[TimeAnalyzer.setupAutocomplete.${inputId}] Input event, value: '${value}'`);
+                const data = getDataFunc();
+                let filteredData;
+
+                if (value === '') {
+                    filteredData = data; 
+                    if (onSelectCallback) onSelectCallback(); // Trigger update if cleared
+                } else {
+                    filteredData = data.filter(item => item.toLowerCase().includes(value));
+                }
+                populateSuggestions(filteredData);
+            });
+
+            input.addEventListener('blur', () => {
+                // console.debug(`[TimeAnalyzer.setupAutocomplete.${inputId}] Input blurred.`);
+                setTimeout(() => {
+                    if (!suggestionsContainer.contains(document.activeElement) &&
+                        (!clearButton || !clearButton.contains(document.activeElement))) {
+                        suggestionsContainer.style.display = 'none';
+                    }
+                }, 150);
+            });
+
+
+            input.addEventListener('keydown', (e) => {
+                updateClearButtonVisibility();
+                let currentSuggestions = Array.from(suggestionsContainer.children);
+                // console.debug(`[TimeAnalyzer.setupAutocomplete.${inputId}] Keydown event: ${e.key}`);
+
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (activeSuggestionIndex > -1 && currentSuggestions[activeSuggestionIndex]) {
+                        console.log(`[TimeAnalyzer.setupAutocomplete.${inputId}] Enter pressed on suggestion: '${currentSuggestions[activeSuggestionIndex].textContent}'`);
+                        currentSuggestions[activeSuggestionIndex].click();
+                    } else { 
+                        console.log(`[TimeAnalyzer.setupAutocomplete.${inputId}] Enter pressed with input value: '${input.value}' (no active suggestion selected).`);
+                        suggestionsContainer.innerHTML = '';
+                        suggestionsContainer.style.display = 'none';
+                        updateClearButtonVisibility();
+                        if (onSelectCallback) onSelectCallback();
+                    }
+                } else if (e.key === 'Escape') {
+                    suggestionsContainer.innerHTML = '';
+                    suggestionsContainer.style.display = 'none';
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    if (suggestionsContainer.style.display === 'none' || currentSuggestions.length === 0) {
+                        const value = input.value.toLowerCase().trim();
+                        const data = getDataFunc();
+                        let itemsToShow = value === '' ? data : data.filter(item => item.toLowerCase().includes(value));
+                        populateSuggestions(itemsToShow);
+                        currentSuggestions = Array.from(suggestionsContainer.children);
+                    }
+                    if (currentSuggestions.length > 0) {
+                        e.preventDefault();
+                        if (e.key === 'ArrowDown') {
+                            activeSuggestionIndex = (activeSuggestionIndex + 1) % currentSuggestions.length;
+                        } else if (e.key === 'ArrowUp') {
+                            activeSuggestionIndex = (activeSuggestionIndex - 1 + currentSuggestions.length) % currentSuggestions.length;
+                        }
+                        this.updateActiveSuggestion(currentSuggestions, activeSuggestionIndex);
+                    }
+                }
+            });
+            
+            if (clearButton) {
+                clearButton.addEventListener('click', () => {
+                    console.log(`[TimeAnalyzer.setupAutocomplete.${inputId}] Clear button clicked.`);
+                    input.value = ''; 
+                    input.focus();    
+                    updateClearButtonVisibility(); 
+                    populateSuggestions(getDataFunc()); 
+                    if (onSelectCallback) onSelectCallback();
+                });
+            }
+            
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !suggestionsContainer.contains(e.target) && (!clearButton || !clearButton.contains(e.target))) {
+                    if (suggestionsContainer.style.display !== 'none') {
+                        // console.debug(`[TimeAnalyzer.setupAutocomplete.${inputId}] Click outside, hiding suggestions.`);
+                        suggestionsContainer.style.display = 'none';
+                    }
+                }
+            });
+            updateClearButtonVisibility();
+        }
+
+        updateActiveSuggestion(suggestions, index) {
+            // console.debug(`[TimeAnalyzer.updateActiveSuggestion] Updating active suggestion to index: ${index}`);
+            suggestions.forEach((suggestion, i) => {
+                suggestion.classList.toggle('active', i === index);
+            });
+        }
+
+        setPresetDateRange(preset) {
+            console.log(`[TimeAnalyzer.setPresetDateRange] Setting date range to: ${preset}`);
+            const today = new Date();
+            let startDate, endDate;
+
+            switch (preset) {
+                case 'today':
+                    startDate = today;
+                    endDate = today;
+                    break;
+                case 'yesterday':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 1);
+                    endDate = startDate;
+                    break;
+                case 'thisWeek': 
+                    startDate = new Date(today);
+                    const dayOfWeek = today.getDay(); 
+                    const diffToSunday = dayOfWeek; 
+                    startDate.setDate(today.getDate() - diffToSunday);
+                    endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 6);
+                    break;
+                case 'thisMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    break;
+                default:
+                    console.warn(`[TimeAnalyzer.setPresetDateRange] Unknown preset: ${preset}`);
+                    return;
+            }
+            
+            const formatDate = (date) => date.toISOString().split('T')[0];
+            const startDateEl = document.getElementById('startDate');
+            const endDateEl = document.getElementById('endDate');
+
+            if (startDateEl) startDateEl.value = formatDate(startDate);
+            if (endDateEl) endDateEl.value = formatDate(endDate);
+            
+            console.log(`[TimeAnalyzer.setPresetDateRange] Dates set: Start - ${startDateEl?.value}, End - ${endDateEl?.value}. Triggering analysis.`);
+            this.updateAnalysis();
+        }
+
+        loadCacheFromLocalStorage() {
+            console.log('[TimeAnalyzer.loadCacheFromLocalStorage] Attempting to load file cache from localStorage...');
+            try {
+                const cachedData = localStorage.getItem(this.localStorageKey);
+                const storedTimestamp = localStorage.getItem(this.cacheTimestampKey);
+
+                if (storedTimestamp) {
+                    this.cacheTimestamp = parseInt(storedTimestamp, 10);
+                    console.log(`[TimeAnalyzer.loadCacheFromLocalStorage] Found cache timestamp: ${new Date(this.cacheTimestamp).toLocaleString()}`);
+                } else {
+                    this.cacheTimestamp = null;
+                    console.log('[TimeAnalyzer.loadCacheFromLocalStorage] No cache timestamp found.');
+                }
+
+                if (cachedData) {
+                    const parsedCache = JSON.parse(cachedData);
+                    if (Array.isArray(parsedCache)) {
+                        this.cache = new Map(parsedCache.map(([key, record]) => {
+                            if (record.date && typeof record.date === 'string') {
+                                record.date = new Date(record.date);
+                            }
+                            return [key, record];
+                        }));
+                        if (this.cache.size > 0) {
+                            console.info(`[TimeAnalyzer.loadCacheFromLocalStorage] Loaded ${this.cache.size} items from local storage cache.`);
+                            this.records = Array.from(this.cache.values());
+                            this.populateFilterDataSources();
+                        } else {
+                            console.log('[TimeAnalyzer.loadCacheFromLocalStorage] Cache was found but was empty after parsing.');
+                        }
+                    } else { 
+                        console.warn('[TimeAnalyzer.loadCacheFromLocalStorage] Invalid cache format found. Clearing cache.');
+                        this.cache = new Map();
+                        localStorage.removeItem(this.localStorageKey);
+                        localStorage.removeItem(this.cacheTimestampKey); 
+                        this.cacheTimestamp = null;
+                    }
+                } else {
+                     console.log('[TimeAnalyzer.loadCacheFromLocalStorage] No cached data found in localStorage.');
+                }
+            } catch (error) {
+                console.error("[TimeAnalyzer.loadCacheFromLocalStorage] Error loading cache from localStorage:", error);
+                this.cache = new Map();
+                localStorage.removeItem(this.localStorageKey);
+                localStorage.removeItem(this.cacheTimestampKey);
+                this.cacheTimestamp = null;
+            }
+        }
+
+        saveCacheToLocalStorage() {
+            console.log('[TimeAnalyzer.saveCacheToLocalStorage] Attempting to save cache to localStorage...');
+            try {
+                const serializableCache = Array.from(this.cache.entries());
+                localStorage.setItem(this.localStorageKey, JSON.stringify(serializableCache));
+                
+                this.cacheTimestamp = Date.now(); 
+                localStorage.setItem(this.cacheTimestampKey, this.cacheTimestamp.toString());
+                
+                console.info(`[TimeAnalyzer.saveCacheToLocalStorage] Saved ${this.cache.size} items to local storage cache. Timestamp: ${new Date(this.cacheTimestamp).toLocaleString()}`);
+            } catch (error) {
+                console.error("[TimeAnalyzer.saveCacheToLocalStorage] Error saving cache to localStorage:", error);
+                if (error.name === 'QuotaExceededError' || (error.code && (error.code === 22 || error.code === 1014)) ) {
+                    this.showStatus('Cache storage limit reached. Consider clearing cache or processing fewer files.', 'error', 7000);
+                }
+            }
+            this.updateCacheStatusDisplay(); 
+        }
+
+        clearLocalStorageCache() {
+            console.log('[TimeAnalyzer.clearLocalStorageCache] Clearing local storage cache...');
+            try {
+                localStorage.removeItem(this.localStorageKey);
+                localStorage.removeItem(this.cacheTimestampKey); 
+                this.cache = new Map();
+                this.records = [];
+                this.processingErrors = [];
+                this.cacheTimestamp = null; 
+                
+                console.info('[TimeAnalyzer.clearLocalStorageCache] Cache cleared. Records and errors reset.');
+                this.renderErrorLog();
+                this.showStatus('Local storage cache cleared. Please re-select a folder.', 'success');
+                this.populateFilterDataSources(); 
+                this.updateCacheStatusDisplay(); 
+                this.updateAnalysis();
+            } catch (error) {
+                console.error("[TimeAnalyzer.clearLocalStorageCache] Error clearing local storage cache:", error);
+                this.showStatus('Error clearing cache.', 'error');
+            }
+        }
+        
+        formatTimeAgo(timestamp) {
+            if (!timestamp) return 'never';
+            const now = Date.now();
+            const seconds = Math.round((now - timestamp) / 1000);
+
+            if (seconds < 2) return 'just now';
+            if (seconds < 60) return `${seconds} seconds ago`;
+
+            const minutes = Math.round(seconds / 60);
+            if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+
+            const hours = Math.round(minutes / 60);
+            if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+
+            const days = Math.round(hours / 24);
+            if (days <= 30) return `${days} day${days > 1 ? 's' : ''} ago`;
+            
+            const months = Math.round(days / 30);
+             if (months < 12) return `${months} month${months > 1 ? 's' : ''} ago`;
+
+            const years = Math.round(months / 12);
+            return `${years} year${years > 1 ? 's' : ''} ago`;
+        }
+
+        updateCacheStatusDisplay() {
+            // console.debug('[TimeAnalyzer.updateCacheStatusDisplay] Updating cache status display.');
+            const cacheStatusEl = document.getElementById('cacheStatusDisplay');
+            const chooseFolderButton = document.querySelector('.file-input-button'); 
+
+            if (!cacheStatusEl || !chooseFolderButton) {
+                console.warn("[TimeAnalyzer.updateCacheStatusDisplay] Cache status display elements not found.");
+                return;
+            }
+
+            chooseFolderButton.classList.remove('needs-attention');
+            if (this.cacheWarningToast) {
+                this.hideSpecificToast(this.cacheWarningToast);
+                this.cacheWarningToast = null;
+            }
+
+            if (this.cacheTimestamp) {
+                const lastUpdateDate = new Date(this.cacheTimestamp);
+                const timeAgo = this.formatTimeAgo(this.cacheTimestamp);
+                let statusText = `Local cache last updated: <strong>${lastUpdateDate.toLocaleString()}</strong> (${timeAgo}).`;
+                // console.log(`[TimeAnalyzer.updateCacheStatusDisplay] Cache timestamp: ${lastUpdateDate.toLocaleString()}`);
+
+                const ageInMs = Date.now() - this.cacheTimestamp;
+                const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
+
+                if (ageInMs > twentyFourHoursInMs && this.cache.size > 0) {
+                    statusText += `<br><strong style="color: #c2410c;">Warning: Cache is older than 24 hours.</strong> Consider re-selecting the folder to ensure you are using the latest data.`;
+                    console.warn('[TimeAnalyzer.updateCacheStatusDisplay] Cache is older than 24 hours.');
+                    
+                    this.cacheWarningToast = this.showStatus(
+                        'Cache data is > 24 hours old. Re-select folder for latest data.',
+                        'warning', 
+                        30000    
+                    );
+                    
+                    chooseFolderButton.classList.add('needs-attention');
+                    chooseFolderButton.style.animation = 'none';
+                    void chooseFolderButton.offsetHeight; 
+                    chooseFolderButton.style.animation = ''; 
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate([150, 50, 150]); 
+                    }
+                }
+                cacheStatusEl.innerHTML = statusText;
+            } else {
+                cacheStatusEl.innerHTML = 'Local cache is empty or has not been created yet.';
+                // console.log('[TimeAnalyzer.updateCacheStatusDisplay] Cache is empty or not yet created.');
+            }
+        }
+        
+        debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        clearDateFilters() {
+            console.log('[TimeAnalyzer.clearDateFilters] Clearing date filters.');
+            const startDateEl = document.getElementById('startDate');
+            const endDateEl = document.getElementById('endDate');
+            if (startDateEl) startDateEl.value = '';
+            if (endDateEl) endDateEl.value = '';
+            this.updateAnalysis();
+        }
+
+        showStatus(message, type = 'info', duration = 5000) {
+            // console.debug(`[TimeAnalyzer.showStatus] Displaying toast: Type - ${type}, Message - "${message.substring(0,100)}..."`);
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                console.error("[TimeAnalyzer.showStatus] Toast container not found. Message:", message);
+                return null;
+            }
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = message; 
+            toastContainer.appendChild(toast);
+            
+            requestAnimationFrame(() => { 
+                requestAnimationFrame(() => { 
+                    toast.classList.add('visible');
+                });
+            });
+
+            if (type !== 'info-persistent') { 
+                setTimeout(() => {
+                    this.hideSpecificToast(toast);
+                }, duration);
+            }
+            return toast;
+        }
+
+        hideSpecificToast(toastElement) {
+            if (toastElement && toastElement.parentNode) {
+                // console.debug(`[TimeAnalyzer.hideSpecificToast] Hiding toast: ${toastElement.textContent.substring(0,50)}...`);
+                toastElement.classList.remove('visible');
+                toastElement.addEventListener('transitionend', () => {
+                    if (toastElement.parentNode) { 
+                        toastElement.parentNode.removeChild(toastElement);
+                    }
+                }, { once: true });
+            }
+        }
+
+        async handleFolderSelect(event) {
+            console.log('[TimeAnalyzer.handleFolderSelect] Folder selection event triggered.');
+            const files = event.target.files ? Array.from(event.target.files) : [];
+            const mdFiles = files.filter(file => file.name.toLowerCase().endsWith('.md'));
+            console.log(`[TimeAnalyzer.handleFolderSelect] Total files selected: ${files.length}, Markdown files found: ${mdFiles.length}`);
+            
+            event.target.value = null;
+
+            if (mdFiles.length === 0) {
+                this.showStatus('No .md files found in the selected folder.', 'error');
+                console.warn('[TimeAnalyzer.handleFolderSelect] No .md files found.');
+                return;
+            }
+            if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+            this.loadingToast = this.showStatus(`<span class="loading"></span> Processing ${mdFiles.length} markdown files...`, 'info-persistent');
+            await this.processFiles(mdFiles);
+        }
+
+        async parseFile(file) { 
+            console.log(`[TimeAnalyzer.parseFile] MAIN THREAD parsing: '${file.name}', Path: '${file.webkitRelativePath}'`);
+            try {
+                const fileContent = await file.text();
+                const pathParts = file.webkitRelativePath.split('/');
+                const hierarchy = pathParts.length > 2 ? pathParts[1] : (pathParts.length > 1 && pathParts[0] !== "" ? pathParts[0] : 'root');
+                // console.debug(`[TimeAnalyzer.parseFile] File: ${file.name}, Content length: ${fileContent.length}, Hierarchy: ${hierarchy}`);
+
+                const filenameRegex = /^(?:(\d{4}-\d{2}-\d{2})\s+(.+?)\s+-\s+(.+?)(?:\s+([IVXLCDM\d]+))?|(?:\(([^)]+)\)\s*)(.+?)(?:\s*-\s*(.+?))?(?:\s+([IVXLCDM\d]+))?)\.md$/i;
+                const filenameMatch = file.name.match(filenameRegex);
+
+                if (!filenameMatch) {
+                    console.warn(`[TimeAnalyzer.parseFile] Filename pattern mismatch for: ${file.name}`);
+                    throw new Error('Filename pattern mismatch.');
+                }
+                // console.debug(`[TimeAnalyzer.parseFile] Filename matched: ${file.name}, Matches:`, filenameMatch);
+
+                let dateStr, projectFromFile, subprojectRaw, serialFromFile;
+                if (filenameMatch[1]) { 
+                    dateStr = filenameMatch[1]; projectFromFile = filenameMatch[2]; subprojectRaw = filenameMatch[3]; serialFromFile = filenameMatch[4];
+                } else { 
+                    projectFromFile = filenameMatch[6]; subprojectRaw = filenameMatch[7]; serialFromFile = filenameMatch[8];
+                }
+
+                if (typeof jsyaml === 'undefined') {
+                    console.error("[TimeAnalyzer.parseFile] js-yaml library is not defined globally. Fallback parsing will fail for:", file.name);
+                    throw new Error('js-yaml library not available for fallback parsing.');
+                }
+
+                const yamlMatch = fileContent.match(/^---\s*\n([\s\S]*?)\n---/);
+                if (!yamlMatch) {
+                    console.warn(`[TimeAnalyzer.parseFile] No YAML front matter found in: ${file.name}`);
+                    throw new Error('No YAML front matter found.');
+                }
+                
+                let metadata;
+                try { 
+                    metadata = jsyaml.load(yamlMatch[1]); 
+                    // console.debug(`[TimeAnalyzer.parseFile] Parsed YAML metadata for ${file.name}:`, metadata);
+                } catch (yamlError) { 
+                    console.warn(`[TimeAnalyzer.parseFile] Invalid YAML in ${file.name}: ${yamlError.message}`);
+                    throw new Error(`Invalid YAML: ${yamlError.message}`); 
+                }
+
+                if (!metadata || typeof metadata !== 'object') {
+                     console.warn(`[TimeAnalyzer.parseFile] YAML front matter is empty or not an object in: ${file.name}`);
+                    throw new Error('YAML front matter is empty or not an object.');
+                }
+                if (!metadata.startTime || !metadata.endTime) {
+                     console.warn(`[TimeAnalyzer.parseFile] Missing startTime or endTime in YAML for: ${file.name}`);
+                    throw new Error('Missing startTime or endTime in YAML.');
+                }
+
+                let eventDuration;
+                if (metadata.type === 'recurring') {
+                    eventDuration = (metadata.startTime && metadata.endTime) ? this.calculateDuration(metadata.startTime, metadata.endTime, 1) : 0;
+                } else {
+                    eventDuration = this.calculateDuration(metadata.startTime, metadata.endTime, metadata.days);
+                }
+                // console.debug(`[TimeAnalyzer.parseFile] Calculated duration for ${file.name}: ${eventDuration}`);
+
+                let recordDate = null;
+                if (dateStr) {
+                    const [year, month, day] = dateStr.split('-').map(Number); 
+                    recordDate = new Date(Date.UTC(year, month - 1, day));
+                } else if (metadata.date) {
+                    const metaDateVal = metadata.date;
+                    if (metaDateVal instanceof Date && !isNaN(metaDateVal.getTime())) {
+                        recordDate = new Date(Date.UTC(metaDateVal.getFullYear(), metaDateVal.getMonth(), metaDateVal.getDate()));
+                    } else {
+                        const metaDateStr = String(metaDateVal); 
+                        const datePartsMatch = metaDateStr.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/); 
+                        if (datePartsMatch) {
+                            const [year, month, day] = datePartsMatch.slice(1, 4).map(Number); 
+                            recordDate = new Date(Date.UTC(year, month - 1, day));
+                        } else {
+                            let parsedFallbackDate = new Date(metaDateStr);
+                            if (!isNaN(parsedFallbackDate.getTime())) {
+                                recordDate = new Date(Date.UTC(parsedFallbackDate.getFullYear(), parsedFallbackDate.getMonth(), parsedFallbackDate.getDate()));
+                            }
+                        }
+                    }
+                }
+                if (recordDate && isNaN(recordDate.getTime())) {
+                     console.warn(`[TimeAnalyzer.parseFile] Invalid date parsed from file or YAML for ${file.name}: ${dateStr || metadata.date}`);
+                     throw new Error(`Invalid date parsed from file or YAML: ${dateStr || metadata.date}`);
+                }
+                // console.debug(`[TimeAnalyzer.parseFile] Record date for ${file.name}: ${recordDate ? recordDate.toISOString() : 'N/A'}`);
+
+
+                const finalProject = projectFromFile ? projectFromFile.trim() : 'Unknown Project';
+                let baseSubproject = 'none', fullSubproject = 'none';
+                if (subprojectRaw) {
+                    subprojectRaw = subprojectRaw.trim();
+                    const subprojectSerialMatch = subprojectRaw.match(/^(.*?)\s+([IVXLCDM\d]+)$/);
+                    if (subprojectSerialMatch) {
+                        baseSubproject = subprojectSerialMatch[1].trim(); 
+                        serialFromFile = serialFromFile || subprojectSerialMatch[2]; 
+                    } else { 
+                        baseSubproject = subprojectRaw; 
+                    }
+                    fullSubproject = baseSubproject;
+                    if (serialFromFile) fullSubproject += ` ${serialFromFile.trim()}`;
+                }
+                if (baseSubproject === "") baseSubproject = 'none';
+                fullSubproject = fullSubproject.trim(); if (fullSubproject === "") fullSubproject = 'none';
+                // console.debug(`[TimeAnalyzer.parseFile] Project: ${finalProject}, Subproject: ${baseSubproject}, Full Subproject: ${fullSubproject} for ${file.name}`);
+
+                console.log(`[TimeAnalyzer.parseFile] Successfully parsed (main thread): ${file.name}`);
+                return { 
+                    path: file.webkitRelativePath, hierarchy, project: finalProject, subproject: baseSubproject, subprojectFull: fullSubproject,
+                    duration: eventDuration, file: file.name, date: recordDate, 
+                    metadata
+                };
+            } catch (error) {
+                console.error(`[TimeAnalyzer.parseFile] Error parsing file (main thread) '${file.name}': ${error.message}`, error);
+                throw error; 
+            }
+        }
+
+        calculateDuration(startTime, endTime, days = 1) {
+            // console.debug(`[TimeAnalyzer.calculateDuration] Calculating duration for startTime: ${startTime}, endTime: ${endTime}, days: ${days}`);
+            const parseTime = (timeStr) => {
+                if (timeStr === null || timeStr === undefined) throw new Error(`Invalid time: null or undefined.`);
+                if (typeof timeStr === 'number') { 
+                    if (isNaN(timeStr) || !isFinite(timeStr)) throw new Error(`Invalid numeric time: ${timeStr}`);
+                    return { hours: Math.floor(timeStr), minutes: Math.round((timeStr - Math.floor(timeStr)) * 60) }; 
+                }
+                const sTimeStr = String(timeStr);
+                const timeMatch = sTimeStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                if (timeMatch) return { hours: parseInt(timeMatch[1]), minutes: parseInt(timeMatch[2]) };
+                
+                try {
+                    const d = new Date(sTimeStr); 
+                    if (!isNaN(d.getTime())) return { hours: d.getUTCHours(), minutes: d.getUTCMinutes() };
+                } catch (e) { /* ignore and try next */ }
+                throw new Error(`Invalid time format: ${sTimeStr}. Use HH:MM, ISO datetime, or decimal hours.`);
+            };
+            try {
+                const start = parseTime(startTime);
+                const end = parseTime(endTime);
+                let startMinutes = start.hours * 60 + start.minutes;
+                let endMinutes = end.hours * 60 + end.minutes;
+                if (endMinutes < startMinutes) endMinutes += 24 * 60; 
+                
+                const durationForOneDay = (endMinutes - startMinutes) / 60;
+                const numDays = Number(days) || 0; 
+                const finalDuration = durationForOneDay * (Math.max(0, numDays));
+                // console.debug(`[TimeAnalyzer.calculateDuration] Calculated duration: ${finalDuration}`);
+                return finalDuration;
+            } catch (error) {
+                 console.warn(`[TimeAnalyzer.calculateDuration] Duration calculation error for (start: "${startTime}", end: "${endTime}", days: ${days}): ${error.message}. Returning 0 duration.`);
+                return 0; 
+            }
+        }
+
+        async processFiles(files) {
+            console.info(`[TimeAnalyzer.processFiles] Starting processing of ${files.length} files.`);
+            this.records = [];
+            this.processingErrors = [];
+            let processedFreshlyCount = 0;
+            let usedFromCacheCount = 0;
+            const newCacheForThisSession = new Map();
+            
+            const filesToParse = []; 
+            for (const file of files) {
+                const cacheKey = `${file.webkitRelativePath}-${file.lastModified}`;
+                if (this.cache.has(cacheKey)) {
+                    const cachedRecord = this.cache.get(cacheKey);
+                    if (cachedRecord.date && typeof cachedRecord.date === 'string') {
+                        cachedRecord.date = new Date(cachedRecord.date);
+                    }
+                    this.records.push(cachedRecord);
+                    newCacheForThisSession.set(cacheKey, cachedRecord);
+                    usedFromCacheCount++;
+                    // console.debug(`[TimeAnalyzer.processFiles] Used cached record for: ${file.webkitRelativePath}`);
+                } else {
+                    filesToParse.push(file);
+                    // console.debug(`[TimeAnalyzer.processFiles] File needs parsing (not in cache or outdated): ${file.webkitRelativePath}`);
+                }
+            }
+            console.log(`[TimeAnalyzer.processFiles] Files from cache: ${usedFromCacheCount}, Files to parse: ${filesToParse.length}`);
+
+            if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+            this.loadingToast = null; 
+
+            let currentlyUsingWorkers = (typeof Worker !== 'undefined'); 
+            let workerPathErrorNotified = false; 
+
+            if (filesToParse.length > 0) {
+                const parseMethodMessage = currentlyUsingWorkers ? "Web Workers" : "main thread (Workers not available/failed or script issue)";
+                console.log(`[TimeAnalyzer.processFiles] Will attempt parsing new files using ${parseMethodMessage}.`);
+                this.loadingToast = this.showStatus(
+                    `<span class="loading"></span> Parsing ${filesToParse.length} new files using ${parseMethodMessage}... (${usedFromCacheCount} from cache)`,
+                    'info-persistent'
+                );
+            } else if (usedFromCacheCount > 0) {
+                this.showStatus(`All ${usedFromCacheCount} files loaded from cache.`, 'success');
+                console.log('[TimeAnalyzer.processFiles] All files loaded from cache. No new files to parse.');
+            }
+
+            const promises = filesToParse.map(file => {
+                return new Promise(async (resolve) => {
+                    const cacheKey = `${file.webkitRelativePath}-${file.lastModified}`;
+                    if (currentlyUsingWorkers) {
+                        let worker;
+                        try {
+                            const workerScriptPath = 'Self-development/parser.worker.js'; 
+                            // console.log(`[TimeAnalyzer.processFiles] Attempting to parse '${file.name}' with Web Worker: ${workerScriptPath}`);
+                            worker = new Worker(workerScriptPath);
+
+                            worker.onmessage = (event) => {
+                                const { type, data } = event.data;
+                                console.log(`[TimeAnalyzer.processFiles] Worker response for '${file.name}': type='${type}'`);
+                                if (type === 'parsed_record') {
+                                    if (data.date && typeof data.date === 'string') data.date = new Date(data.date);
+                                    // console.debug(`[TimeAnalyzer.processFiles] Worker successfully parsed '${file.name}'.`, data);
+                                    resolve({ status: 'success', record: data, cacheKey, parsedBy: 'worker' });
+                                } else if (type === 'parse_error') {
+                                    console.warn(`[TimeAnalyzer.processFiles] Worker failed to parse '${file.name}':`, data.error);
+                                    resolve({ status: 'error', errorData: data, parsedBy: 'worker_error' });
+                                }
+                                worker.terminate();
+                            };
+
+                            worker.onerror = (errorEvent) => {
+                                console.warn(`[TimeAnalyzer.processFiles] Web Worker global error for '${file.name}' (e.g. script not found at '${workerScriptPath}' or origin issue): ${errorEvent.message}. Falling back to main thread parsing.`);
+                                if (!workerPathErrorNotified) {
+                                    this.showStatus(`Worker init error. Using main thread. (Check console & ensure using a local server).`, 'warning', 7000);
+                                    workerPathErrorNotified = true;
+                                }
+                                currentlyUsingWorkers = false; 
+                                worker.terminate(); 
+                                console.log(`[TimeAnalyzer.processFiles] Fallback: Parsing '${file.name}' on main thread due to worker error.`);
+                                this.parseFile(file)
+                                    .then(record => resolve({ status: 'success', record, cacheKey, parsedBy: 'main_thread_fallback' }))
+                                    .catch(parseErr => resolve({ status: 'error', errorData: { filePath: file.webkitRelativePath, fileName: file.name, error: parseErr.message }, parsedBy: 'main_thread_fallback_error' }));
+                            };
+                            
+                            const fileContent = await file.text();
+                            // console.debug(`[TimeAnalyzer.processFiles] Posting file '${file.name}' content to worker.`);
+                            worker.postMessage({
+                                file: { name: file.name, webkitRelativePath: file.webkitRelativePath, content: fileContent, lastModified: file.lastModified }
+                            });
+
+                        } catch (workerConstructionError) {
+                            console.warn(`[TimeAnalyzer.processFiles] Failed to construct Worker for '${file.name}': ${workerConstructionError.message}. Falling back to main thread parsing.`);
+                            if (!workerPathErrorNotified) {
+                                this.showStatus(`Worker creation failed. Using main thread. (Ensure you're using a local server).`, 'warning', 7000);
+                                workerPathErrorNotified = true;
+                            }
+                            currentlyUsingWorkers = false; 
+                             console.log(`[TimeAnalyzer.processFiles] Fallback: Parsing '${file.name}' on main thread due to worker construction error.`);
+                            this.parseFile(file)
+                                .then(record => resolve({ status: 'success', record, cacheKey, parsedBy: 'main_thread_fallback' }))
+                                .catch(parseErr => resolve({ status: 'error', errorData: { filePath: file.webkitRelativePath, fileName: file.name, error: parseErr.message }, parsedBy: 'main_thread_fallback_error' }));
+                        }
+                    } else { 
+                        console.log(`[TimeAnalyzer.processFiles] Parsing '${file.name}' on main thread (workers disabled or previous error).`);
+                        if (filesToParse.indexOf(file) === 0 && this.loadingToast && !this.loadingToast.innerHTML.includes("main thread")) { 
+                            console.warn("[TimeAnalyzer.processFiles] Web Workers not supported or failed. Parsing all files on the main thread.");
+                            if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+                            this.loadingToast = this.showStatus( 
+                                `<span class="loading"></span> Parsing ${filesToParse.length} new files on main thread (fallback)...`,
+                                'info-persistent'
+                            );
+                        }
+                        try {
+                            const record = await this.parseFile(file);
+                            resolve({ status: 'success', record: record, cacheKey, parsedBy: 'main_thread' });
+                        } catch (error) {
+                            resolve({ status: 'error', errorData: { filePath: file.webkitRelativePath, fileName: file.name, error: error.message }, parsedBy: 'main_thread_error' });
+                        }
+                    }
+                });
+            });
+
+            console.log(`[TimeAnalyzer.processFiles] Waiting for ${promises.length} parsing promises to resolve.`);
+            const results = await Promise.all(promises);
+            console.log(`[TimeAnalyzer.processFiles] All parsing promises resolved. Results count: ${results.length}`);
+
+            results.forEach(result => {
+                if (result.status === 'success' && result.record) {
+                    console.log(`[TimeAnalyzer.processFiles] Successfully processed file (via ${result.parsedBy}): ${result.record.file}`);
+                    this.records.push(result.record);
+                    newCacheForThisSession.set(result.cacheKey, result.record);
+                    processedFreshlyCount++;
+                } else if (result.status === 'error' && result.errorData) {
+                    console.warn(`[TimeAnalyzer.processFiles] Error processing file (via ${result.parsedBy}): ${result.errorData.fileName || 'Unknown File'} - ${result.errorData.error}`);
+                    this.processingErrors.push({
+                        file: result.errorData.fileName || 'Unknown File',
+                        path: result.errorData.filePath || 'N/A',
+                        reason: result.errorData.error || 'Unknown error during parsing'
+                    });
+                }
+            });
+
+            this.cache = newCacheForThisSession; 
+            if (this.cache.size > 0) {
+                this.saveCacheToLocalStorage();
+            } else if (files.length > 0 && this.cache.size === 0) {
+                console.warn('[TimeAnalyzer.processFiles] No files made it to cache after processing. Clearing any old cache.');
+                localStorage.removeItem(this.localStorageKey); 
+                localStorage.removeItem(this.cacheTimestampKey);
+                this.cacheTimestamp = null;
+            }
+
+
+            if (this.loadingToast) {
+                this.hideSpecificToast(this.loadingToast);
+                this.loadingToast = null;
+            }
+
+            let finalStatusMessage = `Processed: ${processedFreshlyCount} new, ${usedFromCacheCount} from cache. Total valid: ${this.records.length}.`;
+            if (workerPathErrorNotified) {
+                finalStatusMessage += " (Used main thread for some/all new files due to Worker issues)";
+            } else if (!currentlyUsingWorkers && filesToParse.length > 0 && typeof Worker === 'undefined') {
+                 finalStatusMessage += " (Used main thread for new files as Web Workers are not supported by your browser)";
+            } else if (!currentlyUsingWorkers && filesToParse.length > 0 && workerPathErrorNotified === false) { // Check workerPathErrorNotified ensure it's not already covered
+                 finalStatusMessage += " (Used main thread for new files)";
+            }
+
+            if (this.processingErrors.length > 0) {
+                finalStatusMessage += ` Issues: ${this.processingErrors.length}.`;
+            }
+            const messageType = (this.records.length) > 0 ? 'success' : (this.processingErrors.length > 0 ? 'warning' : 'info');
+            this.showStatus(finalStatusMessage, messageType, this.processingErrors.length > 0 ? 7000 : 5000);
+            console.info(`[TimeAnalyzer.processFiles] Processing finished. ${finalStatusMessage}`);
+
+            this.populateFilterDataSources();
+            this.renderErrorLog();
+            this.updateCacheStatusDisplay();
+            this.updateAnalysis();
+        }
+
+        getDayOfWeekNumber(dayChar) {
+            const mapping = { 'U': 0, 'M': 1, 'T': 2, 'W': 3, 'R': 4, 'F': 5, 'S': 6 }; 
+            const upperDayChar = String(dayChar).trim().toUpperCase();
+            return mapping.hasOwnProperty(upperDayChar) ? mapping[upperDayChar] : undefined;
+        }
+
+        calculateRecurringInstancesInDateRange(metadata, filterStartDate, filterEndDate) {
+            // console.debug('[TimeAnalyzer.calculateRecurringInstancesInDateRange] Calculating instances for metadata:', metadata, 'Filter Start:', filterStartDate, 'Filter End:', filterEndDate);
+            const { startRecur: metaStartRecurStr, endRecur: metaEndRecurStr, daysOfWeek: metaDaysOfWeek } = metadata;
+            if (!metaStartRecurStr || !metaDaysOfWeek || typeof metaDaysOfWeek === 'undefined') {
+                // console.debug('[TimeAnalyzer.calculateRecurringInstancesInDateRange] Missing startRecur or daysOfWeek. Returning 0.');
+                return 0;
+            }
+
+            let recurrenceStart;
+            const sMetaStartRecurStr = String(metaStartRecurStr);
+            const startRecurParts = sMetaStartRecurStr.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+            if(startRecurParts) recurrenceStart = new Date(Date.UTC(Number(startRecurParts[1]), Number(startRecurParts[2])-1, Number(startRecurParts[3])));
+            else { 
+                recurrenceStart = new Date(sMetaStartRecurStr); 
+                if(!isNaN(recurrenceStart)) recurrenceStart = new Date(Date.UTC(recurrenceStart.getFullYear(), recurrenceStart.getMonth(), recurrenceStart.getDate()));
+            }
+            if (!recurrenceStart || isNaN(recurrenceStart.getTime())) {
+                console.warn("[TimeAnalyzer.calculateRecurringInstancesInDateRange] Invalid startRecur date:", metaStartRecurStr); return 0;
+            }
+
+            let recurrenceEnd = new Date(Date.UTC(9999, 11, 31)); 
+            if(metaEndRecurStr) {
+                const sMetaEndRecurStr = String(metaEndRecurStr);
+                const endRecurParts = sMetaEndRecurStr.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+                if(endRecurParts) recurrenceEnd = new Date(Date.UTC(Number(endRecurParts[1]), Number(endRecurParts[2])-1, Number(endRecurParts[3])));
+                else { 
+                    recurrenceEnd = new Date(sMetaEndRecurStr); 
+                    if(!isNaN(recurrenceEnd)) recurrenceEnd = new Date(Date.UTC(recurrenceEnd.getFullYear(), recurrenceEnd.getMonth(), recurrenceEnd.getDate()));
+                }
+                if (isNaN(recurrenceEnd.getTime())) recurrenceEnd = new Date(Date.UTC(9999, 11, 31));
+            }
+            
+            let effectiveStart = new Date(recurrenceStart.getTime()); 
+            if (filterStartDate && !isNaN(filterStartDate.getTime())) {
+                effectiveStart = new Date(Math.max(recurrenceStart.getTime(), filterStartDate.getTime()));
+            }
+
+            let effectiveEnd = new Date(recurrenceEnd.getTime()); 
+            if (filterEndDate && !isNaN(filterEndDate.getTime())) {
+                effectiveEnd = new Date(Math.min(recurrenceEnd.getTime(), filterEndDate.getTime()));
+            }
+
+            if (effectiveStart > effectiveEnd) {
+                // console.debug('[TimeAnalyzer.calculateRecurringInstancesInDateRange] Effective start is after effective end. Returning 0.');
+                return 0;
+            }
+
+            const rawDaysOfWeekArray = Array.isArray(metaDaysOfWeek) ? metaDaysOfWeek : String(metaDaysOfWeek).replace(/[\[\]\s]/g, '').split(',');
+            const targetDays = rawDaysOfWeekArray.map(d => this.getDayOfWeekNumber(d)).filter(d => d !== undefined);
+            if (targetDays.length === 0) {
+                // console.debug('[TimeAnalyzer.calculateRecurringInstancesInDateRange] No valid target days. Returning 0.');
+                return 0;
+            }
+
+            let count = 0;
+            let currentDate = new Date(effectiveStart.getTime()); 
+            
+            while (currentDate.getTime() <= effectiveEnd.getTime()) { 
+                if (targetDays.includes(currentDate.getUTCDay())) {
+                    count++;
+                }
+                currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+            }
+            // console.debug(`[TimeAnalyzer.calculateRecurringInstancesInDateRange] Calculated ${count} instances.`);
+            return count;
+        }
+
+        populateFilterDataSources() {
+            console.log('[TimeAnalyzer.populateFilterDataSources] Populating filter data sources (hierarchies, projects)...');
+            this.allHierarchies = [...new Set(this.records.map(r => r.hierarchy).filter(Boolean))].sort();
+            this.allProjects = [...new Set(this.records.map(r => r.project).filter(Boolean))].sort();
+            console.log(`[TimeAnalyzer.populateFilterDataSources] Found ${this.allHierarchies.length} unique hierarchies, ${this.allProjects.length} unique projects.`);
+        }
+
+        handleLevelChange(triggerAnalysis = true) {
+            const levelSelect = document.getElementById('levelSelect');
+            if (!levelSelect) {
+                console.error("[TimeAnalyzer.handleLevelChange] Level select element not found.");
+                return;
+            }
+            const level = levelSelect.value;
+            console.log(`[TimeAnalyzer.handleLevelChange] Analysis level changed to: ${level}. Trigger analysis: ${triggerAnalysis}`);
+
+            const hierarchyContainer = document.getElementById('hierarchyFilterContainer');
+            const projectContainer = document.getElementById('projectFilterContainer');
+            
+            if (hierarchyContainer) hierarchyContainer.style.display = (level === 'project' || level === 'subproject') ? 'block' : 'none';
+            if (projectContainer) projectContainer.style.display = (level === 'subproject') ? 'block' : 'none';
+
+            const hierarchyFilterInput = document.getElementById('hierarchyFilterInput');
+            const projectFilterInput = document.getElementById('projectFilterInput');
+            const hierarchySuggestions = document.getElementById('hierarchySuggestions');
+            const projectSuggestions = document.getElementById('projectSuggestions');
+
+
+            if (level === 'hierarchy') {
+                if (hierarchyFilterInput) hierarchyFilterInput.value = '';
+                if (projectFilterInput) projectFilterInput.value = '';
+                if (hierarchySuggestions) hierarchySuggestions.style.display = 'none';
+                if (projectSuggestions) projectSuggestions.style.display = 'none';
+                if (hierarchyFilterInput) this._updateAutocompleteClearButtonVisibility(hierarchyFilterInput);
+                if (projectFilterInput) this._updateAutocompleteClearButtonVisibility(projectFilterInput);
+            } else if (level === 'project') {
+                if (projectFilterInput) projectFilterInput.value = '';
+                if (projectSuggestions) projectSuggestions.style.display = 'none';
+                 if (projectFilterInput) this._updateAutocompleteClearButtonVisibility(projectFilterInput);
+            }
+
+            if (triggerAnalysis) {
+                this.updateAnalysis();
+            }
+        }
+        
+        isWithinDateRange(recordDateObj, filterStartDateStr, filterEndDateStr) {
+            if (!recordDateObj || isNaN(recordDateObj.getTime())) {
+                // console.debug('[TimeAnalyzer.isWithinDateRange] Invalid recordDateObj, returning false.');
+                return false; 
+            }
+
+            let filterStartDate = null;
+            if (filterStartDateStr) {
+                const [year, month, day] = filterStartDateStr.split('-').map(Number);
+                filterStartDate = new Date(Date.UTC(year, month - 1, day));
+                if (isNaN(filterStartDate.getTime())) filterStartDate = null;
+            }
+
+            let filterEndDate = null;
+            if (filterEndDateStr) {
+                const [year, month, day] = filterEndDateStr.split('-').map(Number);
+                filterEndDate = new Date(Date.UTC(year, month - 1, day));
+                if (isNaN(filterEndDate.getTime())) filterEndDate = null;
+            }
+
+            if (!filterStartDate && !filterEndDate) {
+                // console.debug('[TimeAnalyzer.isWithinDateRange] No date filters, returning true.');
+                return true;
+            }
+            
+            // recordDateObj is already UTC midnight
+            let isWithin = true;
+            if (filterStartDate && recordDateObj < filterStartDate) isWithin = false;
+            if (filterEndDate && recordDateObj > filterEndDate) isWithin = false;
+            
+            // console.debug(`[TimeAnalyzer.isWithinDateRange] Record: ${recordDateObj.toISOString()}, Start: ${filterStartDate ? filterStartDate.toISOString() : 'N/A'}, End: ${filterEndDate ? filterEndDate.toISOString() : 'N/A'}. Result: ${isWithin}`);
+            return isWithin;
+        }
+
+        aggregate(level, pattern = null) {
+            console.log(`[TimeAnalyzer.aggregate] Aggregating data for level: '${level}', pattern: '${pattern || 'N/A'}'`);
+            const hours = new Map();
+            const recordsByCategory = new Map(); 
+            
+            const hierarchyFilterInput = document.getElementById('hierarchyFilterInput');
+            const projectFilterInput = document.getElementById('projectFilterInput');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+
+            const hierarchyFilter = hierarchyFilterInput ? hierarchyFilterInput.value.trim().toLowerCase() : '';
+            const projectFilter = projectFilterInput ? projectFilterInput.value.trim().toLowerCase() : '';
+            const startDateStr = startDateInput ? startDateInput.value : '';
+            const endDateStr = endDateInput ? endDateInput.value : '';
+            console.log(`[TimeAnalyzer.aggregate] Filters: Hierarchy='${hierarchyFilter}', Project='${projectFilter}', StartDate='${startDateStr}', EndDate='${endDateStr}'`);
+            
+            let filterStartDate = null;
+            if (startDateStr) {
+                const [year, month, day] = startDateStr.split('-').map(Number);
+                filterStartDate = new Date(Date.UTC(year, month - 1, day));
+                if (isNaN(filterStartDate.getTime())) filterStartDate = null;
+            }
+            
+            let filterEndDate = null;
+            if (endDateStr) {
+                const [year, month, day] = endDateStr.split('-').map(Number);
+                filterEndDate = new Date(Date.UTC(year, month - 1, day));
+                 if (isNaN(filterEndDate.getTime())) filterEndDate = null;
+            }
+
+            let regex = null;
+            let aggregationError = false;
+
+            if (pattern && pattern.trim()) {
+                try { 
+                    regex = new RegExp(pattern.trim(), 'i'); 
+                    console.log(`[TimeAnalyzer.aggregate] Using regex pattern: ${regex}`);
+                } catch (error) {
+                    this.showStatus(`Invalid Regex pattern: ${error.message}`, 'error');
+                    console.error(`[TimeAnalyzer.aggregate] Invalid Regex pattern: ${error.message}`);
+                    aggregationError = true; 
+                    return { hours: new Map(), recordsByCategory: new Map(), filteredRecordCount: 0, error: true };
+                }
+            }
+
+            let processedRecordCount = 0;
+            for (const record of this.records) {
+                if (!record) continue;
+
+                if (hierarchyFilter && record.hierarchy && record.hierarchy.toLowerCase() !== hierarchyFilter) continue;
+                if (projectFilter && record.project && record.project.toLowerCase() !== projectFilter) continue;
+
+                let currentRecordDuration = record.duration; 
+
+                if (record.metadata && record.metadata.type === 'recurring') {
+                    if (!record.metadata.startRecur || !record.metadata.daysOfWeek || record.duration === 0) {
+                        currentRecordDuration = 0; 
+                    } else {
+                        const numInstances = this.calculateRecurringInstancesInDateRange(
+                            record.metadata, filterStartDate, filterEndDate
+                        );
+                        currentRecordDuration = (record.duration || 0) * numInstances;
+                    }
+                } else { 
+                    if (!this.isWithinDateRange(record.date, startDateStr, endDateStr)) {
+                        continue; 
+                    }
+                }
+                
+                const key = record[level] !== undefined && record[level] !== null ? String(record[level]) : `(No ${level} defined)`;
+
+                if (regex && !regex.test(key)) continue;
+                if (currentRecordDuration <= 0) continue; 
+
+                hours.set(key, (hours.get(key) || 0) + currentRecordDuration);
+                if (!recordsByCategory.has(key)) recordsByCategory.set(key, []);
+                recordsByCategory.get(key).push(record);
+                processedRecordCount++;
+            }
+            
+            let uniqueSourceFiles = new Set();
+            recordsByCategory.forEach(list => list.forEach(rec => uniqueSourceFiles.add(rec.path)));
+            const finalFilteredFileCount = uniqueSourceFiles.size;
+
+            console.log(`[TimeAnalyzer.aggregate] Aggregation complete. ${hours.size} categories, ${finalFilteredFileCount} unique files matched filters, ${processedRecordCount} individual records contributed.`);
+            return { hours, recordsByCategory, filteredRecordCount: finalFilteredFileCount, error: aggregationError };
+        }
+
+        updateAnalysis() {
+            console.log('[TimeAnalyzer.updateAnalysis] Starting analysis update...');
+            const statsGrid = document.getElementById('statsGrid');
+            const chartContainer = document.getElementById('chartContainer');
+            const errorLogContainer = document.getElementById('errorLogContainer');
+            const pieChartElement = document.getElementById('pieChart');
+
+            if (this.records.length === 0 && this.processingErrors.length === 0) { 
+                console.log('[TimeAnalyzer.updateAnalysis] No records and no processing errors. Hiding UI elements.');
+                if (statsGrid) statsGrid.style.display = 'none';
+                if (chartContainer) chartContainer.style.display = 'none';
+                if (errorLogContainer) errorLogContainer.style.display = 'none';
+                if (pieChartElement && pieChartElement.data) Plotly.purge(pieChartElement);
+                this.saveUIState();
+                return;
+            }
+
+            if (this.loadingToast) this.hideSpecificToast(this.loadingToast);
+            this.loadingToast = this.showStatus(`<span class="loading"></span> Updating analysis...`, 'info-persistent');
+            
+            const levelSelect = document.getElementById('levelSelect');
+            const patternInput = document.getElementById('patternInput');
+            if (!levelSelect || !patternInput) {
+                 if (this.loadingToast) { this.hideSpecificToast(this.loadingToast); this.loadingToast = null; }
+                console.error("[TimeAnalyzer.updateAnalysis] Required control elements not found.");
+                this.saveUIState();
+                return;
+            }
+            const level = levelSelect.value;
+            const pattern = patternInput.value;
+            console.log(`[TimeAnalyzer.updateAnalysis] Current settings - Level: ${level}, Pattern: '${pattern}'`);
+            
+            setTimeout(() => { 
+                console.log('[TimeAnalyzer.updateAnalysis] Starting aggregation (inside setTimeout).');
+                this.currentAggregatedData = this.aggregate(level, pattern);
+                const { hours, filteredRecordCount, error: aggregationError } = this.currentAggregatedData;
+
+                if (this.loadingToast) {
+                    this.hideSpecificToast(this.loadingToast);
+                    this.loadingToast = null;
+                }
+                
+                this.renderErrorLog();
+
+                if (aggregationError) {
+                    console.warn('[TimeAnalyzer.updateAnalysis] Aggregation error occurred. Hiding chart and stats.');
+                    if (statsGrid) statsGrid.style.display = 'none';
+                    if (chartContainer) chartContainer.style.display = 'none';
+                    if (pieChartElement && pieChartElement.data) Plotly.purge(pieChartElement);
+                    this.saveUIState();
+                    return;
+                }
+                
+                if (hours.size === 0) {
+                    console.log('[TimeAnalyzer.updateAnalysis] No data matched current filters or no records available.');
+                    if (this.records.length > 0) {
+                        this.showStatus('No data matches the current filters.', 'info', 3000);
+                    }
+                    if (statsGrid) statsGrid.style.display = 'none';
+                    if (chartContainer) chartContainer.style.display = 'none';
+                    if (pieChartElement && pieChartElement.data) Plotly.purge(pieChartElement);
+                    this.saveUIState();
+                    return;
+                }
+                
+                console.log('[TimeAnalyzer.updateAnalysis] Aggregated data has content. Displaying stats and chart.');
+                if (statsGrid) statsGrid.style.display = 'grid';
+                if (chartContainer) chartContainer.style.display = 'block';
+                
+                const totalHours = Array.from(hours.values()).reduce((sum, h) => sum + h, 0);
+                const totalHoursEl = document.getElementById('totalHours');
+                const totalFilesEl = document.getElementById('totalFiles');
+                const totalCategoriesEl = document.getElementById('totalCategories');
+
+                if (totalHoursEl) totalHoursEl.textContent = totalHours.toFixed(2);
+                if (totalFilesEl) totalFilesEl.textContent = filteredRecordCount; 
+                if (totalCategoriesEl) totalCategoriesEl.textContent = hours.size;
+                console.log(`[TimeAnalyzer.updateAnalysis] Stats updated - Total Hours: ${totalHours.toFixed(2)}, Files: ${filteredRecordCount}, Categories: ${hours.size}`);
+                
+                this.renderPieChart(hours);
+                this.saveUIState(); 
+                console.log('[TimeAnalyzer.updateAnalysis] Analysis update complete.');
+            }, 50); 
+        }
+
+        renderPieChart(hoursData) {
+            console.log('[TimeAnalyzer.renderPieChart] Rendering pie chart...');
+            const pieChartElement = document.getElementById('pieChart');
+            if (!pieChartElement) {
+                console.error("[TimeAnalyzer.renderPieChart] #pieChart element not found.");
+                return;
+            }
+            const levelSelect = document.getElementById('levelSelect');
+            const chartTitleText = levelSelect ? levelSelect.selectedOptions[0].text.split('(')[0].trim() : 'Category';
+            console.log(`[TimeAnalyzer.renderPieChart] Chart title basis: ${chartTitleText}`);
+
+            const labels = Array.from(hoursData.keys());
+            const values = Array.from(hoursData.values());
+            // console.debug('[TimeAnalyzer.renderPieChart] Chart data - Labels:', labels, 'Values:', values);
+            const data = [{
+                type: 'pie',
+                labels: labels, 
+                values: values, 
+                textinfo: 'label+percent', 
+                textposition: 'outside',
+                hoverinfo: 'label+value+percent',
+                automargin: true,
+                marker: {
+                    line: { color: 'white', width: 2 }
+                }
+            }];
+            const layout = {
+                title: {
+                    text: `Time Distribution by ${chartTitleText}`,
+                    font: { size: 18, color: '#2d3748' }
+                },
+                font: { family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' },
+                showlegend: true,
+                legend: { orientation: 'v', x: 1.05, y: 0.5, traceorder: 'normal' }, 
+                margin: { t: 50, b: 20, l: 20, r: 20 }, 
+                height: 500 
+            };
+            const config = { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'] };
+            
+            Plotly.newPlot(pieChartElement, data, layout, config);
+            console.log('[TimeAnalyzer.renderPieChart] Pie chart rendered/updated.');
+            
+            pieChartElement.on('plotly_click', (eventData) => {
+                if (eventData.points && eventData.points.length > 0) {
+                    const categoryName = eventData.points[0].label;
+                    console.log(`[TimeAnalyzer.renderPieChart] Pie chart segment clicked: ${categoryName}`);
+                    if (this.currentAggregatedData && this.currentAggregatedData.recordsByCategory && this.currentAggregatedData.recordsByCategory.has(categoryName)) {
+                        const recordsForCategory = this.currentAggregatedData.recordsByCategory.get(categoryName);
+                        this.showDetailPopup(categoryName, recordsForCategory);
+                    } else {
+                        console.warn(`[TimeAnalyzer.renderPieChart] No records found for category: ${categoryName} in currentAggregatedData.`);
+                    }
+                }
+            });
+        }
+
+        renderErrorLog() {
+            console.log('[TimeAnalyzer.renderErrorLog] Rendering error log...');
+            const errorLogContainer = document.getElementById('errorLogContainer');
+            const errorLogSummary = document.getElementById('errorLogSummary');
+            const errorLogEntries = document.getElementById('errorLogEntries');
+
+            if (!errorLogContainer || !errorLogSummary || !errorLogEntries) {
+                console.error("[TimeAnalyzer.renderErrorLog] Error log display elements not found.");
+                return;
+            }
+
+            errorLogEntries.innerHTML = ''; 
+
+            if (this.processingErrors.length === 0) {
+                errorLogSummary.textContent = 'No processing issues found for the last selected folder.';
+                errorLogContainer.style.display = (this.records.length > 0 || this.cache.size > 0) ? 'block' : 'none';
+                // console.log('[TimeAnalyzer.renderErrorLog] No processing errors to display.');
+                return;
+            }
+
+            errorLogSummary.textContent = `Found ${this.processingErrors.length} issue(s) during file processing:`;
+            console.warn(`[TimeAnalyzer.renderErrorLog] Displaying ${this.processingErrors.length} processing errors.`);
+            
+            this.processingErrors.forEach(err => {
+                const details = document.createElement('details');
+                details.className = 'log-entry';
+                const summary = document.createElement('summary');
+                summary.textContent = `⚠️ ${err.file || 'Unknown File'}`;
+                const content = document.createElement('div');
+                content.className = 'log-entry-content';
+                content.innerHTML = `
+                    <strong>Path:</strong> ${err.path || 'N/A'}<br>
+                    <strong>Reason:</strong> ${err.reason || 'No specific reason provided.'}
+                `;
+                details.appendChild(summary);
+                details.appendChild(content);
+                errorLogEntries.appendChild(details);
+            });
+            errorLogContainer.style.display = 'block';
+        }
+
+        showDetailPopup(categoryName, recordsList) {
+            console.log(`[TimeAnalyzer.showDetailPopup] Showing detail popup for category: ${categoryName}, with ${recordsList.length} records.`);
+            const popupTitleEl = document.getElementById('popupTitle');
+            const popupSummaryStatsEl = document.getElementById('popupSummaryStats');
+            const tableBody = document.getElementById('popupTableBody');
+            const detailOverlay = document.getElementById('detailOverlay');
+            const detailPopup = document.getElementById('detailPopup');
+
+            if (!popupTitleEl || !popupSummaryStatsEl || !tableBody || !detailOverlay || !detailPopup) {
+                console.error("[TimeAnalyzer.showDetailPopup] Detail popup elements not found.");
+                return;
+            }
+
+            popupTitleEl.textContent = `Details for: ${categoryName}`;
+            
+            const categoryTotalHoursFromChart = (this.currentAggregatedData && this.currentAggregatedData.hours && this.currentAggregatedData.hours.get(categoryName)) || 0;
+            const numSourceFiles = new Set(recordsList.map(r => r.path)).size;
+            const avgDurationPerFile = numSourceFiles > 0 ? (categoryTotalHoursFromChart / numSourceFiles) : 0;
+
+            popupSummaryStatsEl.innerHTML = `
+                <div class="summary-stat"><div class="summary-stat-value">${numSourceFiles}</div><div class="summary-stat-label">Unique Files</div></div>
+                <div class="summary-stat"><div class="summary-stat-value">${categoryTotalHoursFromChart.toFixed(2)}</div><div class="summary-stat-label">Total Hrs (Filtered)</div></div>
+                <div class="summary-stat"><div class="summary-stat-value">${avgDurationPerFile.toFixed(2)}</div><div class="summary-stat-label">Avg. Hrs/File</div></div>`;
+            
+            tableBody.innerHTML = ''; 
+            
+            recordsList.sort((a,b) => {
+                const dateA = a.date instanceof Date ? a.date.getTime() : null;
+                const dateB = b.date instanceof Date ? b.date.getTime() : null;
+
+                if (dateA && dateB) return dateB - dateA; 
+                if (dateA) return -1; 
+                if (dateB) return 1;  
+                return (a.path || "").localeCompare(b.path || ""); 
+            });
+            // console.debug(`[TimeAnalyzer.showDetailPopup] Sorted records for popup table.`);
+
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const startDateStr = startDateInput ? startDateInput.value : '';
+            const endDateStr = endDateInput ? endDateInput.value : '';
+            
+            let filterStartDate = null;
+            if (startDateStr) {
+                const [year, month, day] = startDateStr.split('-').map(Number);
+                filterStartDate = new Date(Date.UTC(year, month - 1, day));
+                if (isNaN(filterStartDate.getTime())) filterStartDate = null;
+            }
+
+            let filterEndDate = null;
+            if (endDateStr) {
+                const [year, month, day] = endDateStr.split('-').map(Number);
+                filterEndDate = new Date(Date.UTC(year, month - 1, day));
+                if (isNaN(filterEndDate.getTime())) filterEndDate = null;
+            }
+
+
+            recordsList.forEach(record => {
+                const row = tableBody.insertRow();
+                row.insertCell().innerHTML = `<span class="file-path-cell" title="${record.path || ''}">${record.path || 'N/A'}</span>`;
+                
+                const dateCell = row.insertCell();
+                dateCell.className = 'date-cell'; 
+                if (record.date instanceof Date && !isNaN(record.date.getTime())) {
+                    dateCell.textContent = record.date.toISOString().split('T')[0];
+                } else if (record.metadata && record.metadata.type === 'recurring') {
+                    dateCell.textContent = 'Recurring';
+                } else {
+                    dateCell.textContent = 'N/A';
+                }
+                
+                let displayDuration = record.duration || 0; 
+                if (record.metadata && record.metadata.type === 'recurring') {
+                    const numInstances = this.calculateRecurringInstancesInDateRange(
+                        record.metadata, filterStartDate, filterEndDate
+                    );
+                    displayDuration = (record.duration || 0) * numInstances; 
+                }
+                const durationCell = row.insertCell();
+                durationCell.className = 'duration-cell'; 
+                durationCell.textContent = displayDuration.toFixed(2);
+
+                const projectCell = row.insertCell();
+                projectCell.className = 'project-cell'; 
+                projectCell.textContent = record.project || 'N/A';
+
+                const subprojectCell = row.insertCell();
+                subprojectCell.className = 'subproject-cell'; 
+                subprojectCell.textContent = record.subprojectFull || 'N/A';
+            });
+            detailOverlay.classList.add('visible');
+            detailPopup.classList.add('visible');
+            document.body.style.overflow = 'hidden'; 
+            console.log('[TimeAnalyzer.showDetailPopup] Detail popup displayed.');
+        }
+
+        hideDetailPopup() {
+            console.log('[TimeAnalyzer.hideDetailPopup] Hiding detail popup.');
+            const detailOverlay = document.getElementById('detailOverlay');
+            const detailPopup = document.getElementById('detailPopup');
+            if (detailOverlay) detailOverlay.classList.remove('visible');
+            if (detailPopup) detailPopup.classList.remove('visible');
+            document.body.style.overflow = ''; 
+        }
+}
+        document.addEventListener('DOMContentLoaded', () => {
+            console.info('[DOMContentLoaded] DOM fully loaded and parsed. Initializing TimeAnalyzer application.');
+            window.timeAnalyzerApp = new TimeAnalyzer();
+        });
+    </script>
+</body>
+</html>
