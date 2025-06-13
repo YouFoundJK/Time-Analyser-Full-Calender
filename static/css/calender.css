@@ -1,0 +1,497 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+    position: relative; /* For positioning elements like the clear cache button */
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.header-action-button { /* Style for buttons in the header */
+    position: absolute;
+    top: 20px; /* Adjust as needed */
+    left: 20px; /* Adjust as needed */
+    z-index: 100; /* Ensure it's above other elements if overlap occurs */
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    color: white;
+    border: none;
+    line-height: 1.5; /* ensure text is centered with icon */
+}
+.header-action-button:hover {
+    transform: translateY(-1px);
+}
+
+
+.controls {
+    background: rgba(255, 255, 255, 0.93); /* Slightly more opaque backdrop */
+    backdrop-filter: blur(12px); /* Slightly stronger blur */
+    border-radius: 18px; /* More pronounced rounding */
+    padding: 20px; /* Consistent padding */
+    margin-bottom: 30px; /* Increased margin */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12); /* Softer, larger shadow */
+    border: 1px solid rgba(255,255,255,0.25);
+    position: relative; 
+    z-index: 60;      
+}
+
+.control-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px; /* Slightly reduced gap */
+    align-items: flex-end; 
+    padding-bottom: 18px; /* Padding for content before border */
+    margin-bottom: 18px; /* Margin for space after border */
+    border-bottom: 1px solid rgba(102, 126, 234, 0.2); /* Subtle separator */
+}
+.control-group:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+
+.control-item {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 260px; /* Target width for items, allows 3-4 per row before wrap */
+    min-width: 220px; /* Prevent items from becoming too small */
+}
+.control-item label {
+    margin-bottom: 6px; /* Slightly reduced margin */
+    font-size: 0.9rem; /* Slightly smaller label */
+    color: #4a5568; /* Existing good color */
+}
+
+.date-preset-buttons {
+    display: flex;
+    gap: 8px; /* Reduced gap */
+    margin-top: 10px; 
+    align-items: center;
+    width: 100%; 
+    flex-wrap: wrap; 
+}
+.date-preset-buttons button {
+    padding: 7px 10px; /* Smaller padding */
+    font-size: 0.85rem; /* Smaller font */
+    border-radius: 5px;
+    background-color: #e9ecef; /* Lighter grey */
+    border: 1px solid #ced4da;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    flex-grow: 1; 
+    min-width: 70px; 
+}
+.date-preset-buttons button:hover {
+    background-color: #dee2e6;
+}
+.date-preset-buttons .clear-dates-btn {
+    background: #f57c00; /* Softer red */
+    color: white;
+    border: none;
+    padding: 7px 10px; 
+    font-size: 0.85rem; 
+    height: auto; 
+    line-height: normal; 
+    margin-left: auto; 
+    flex-grow: 0; 
+    min-width: auto;
+}
+.date-preset-buttons .clear-dates-btn:hover {
+    background: #ef5350; /* Darker on hover */
+}
+
+
+label {
+    display: block;
+    margin-bottom: 6px; /* Consistent with .control-item label */
+    font-weight: 500; /* Slightly less bold */
+    font-size: 0.9rem;
+    color: #374151; /* Darker for better contrast on light bg */
+}
+
+select, input[type="text"], input#dateRangePicker.flatpickr-input {
+    width: 100%;
+    padding: 10px 14px; /* Adjusted padding */
+    border: 1px solid #d1d5db; /* Softer border */
+    border-radius: 6px; /* Softer radius */
+    font-size: 15px;
+    transition: all 0.2s ease-in-out;
+    background-color: #f8f9fa; /* Light background for inputs */
+    height: 44px; /* Adjusted height */
+    color: #1f2937;
+}
+input#dateRangePicker.flatpickr-input { /* Ensure Flatpickr input matches */
+     max-width: 320px; /* Prevent date picker from becoming too wide */
+}
+
+
+select:focus, input[type="text"]:focus, input#dateRangePicker.flatpickr-input:focus {
+    outline: none;
+    border-color: #667eea;
+    background-color: white; /* White on focus */
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); /* Adjusted shadow */
+}
+
+.file-input-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.file-input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.file-input-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px; /* Match input padding */
+    background: linear-gradient(135deg, #6a82fb, #7f57c2); /* Slightly adjusted gradient */
+    color: white;
+    border: none;
+    border-radius: 6px; /* Match input radius */
+    cursor: pointer;
+    font-size: 15px; /* Match input font size */
+    transition: all 0.3s ease;
+    width: 100%;
+    justify-content: center;
+    height: 44px;  /* Match input height */
+}
+
+.file-input-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3); /* Softer shadow */
+}
+
+
+.dashboard-layout-container {
+    display: flex;
+    flex-direction: column; /* Default: stats above chart for smaller screens */
+    gap: 25px; /* Spacing when stacked */
+    margin-bottom: 25px; /* Overall margin for this block */
+}
+
+/* Default .stats-grid styling (for stacked/mobile view if it becomes visible) */
+.stats-grid {
+    /* display: grid; is the default from original CSS, will be overridden for desktop */
+    /* grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); */ /* From original */
+    /* gap: 20px; */ /* From original */
+    /* margin-bottom: 25px; -- Handled by dashboard-layout-container gap/margin */
+}
+.stats-grid:not([style*="display: none"]) { /* Styles for when it's visible by default */
+     display: grid;
+     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+     gap: 20px;
+}
+
+
+.main-chart-container {
+    /* ... existing styles ... */
+    /* margin-bottom: 25px; -- Handled by dashboard-layout-container gap/margin */
+}
+/* Add these new rules to the <style> block */
+.legend-section {
+    margin-bottom: 15px;
+}
+.legend-title {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 5px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 0.9rem;
+}
+.legend-item:hover {
+    background-color: #f0f2f5;
+}
+.legend-color-box {
+    width: 12px;
+    height: 12px;
+    margin-right: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+.legend-label {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.legend-value {
+    font-weight: 500;
+    color: #718096;
+    margin-left: 10px;
+}
+#customLegend {
+    height: 470px; /* Match the chart height for alignment */
+}
+
+/* Add this new rule to the <style> block */
+.legend-item.legend-item-active {
+    background-color: #e0e7ff; /* A light, noticeable background */
+    font-weight: 600;
+    border-left: 3px solid #667eea;
+    padding-left: 5px; /* Adjust padding to account for border */
+}
+
+/* Desktop layout: Stats on left, Chart on right */
+@media (min-width: 992px) { /* Adjust this breakpoint as needed (e.g., 1024px) */
+    .dashboard-layout-container {
+        flex-direction: row; /* Side-by-side */
+        align-items: stretch; /* Make stats-grid and main-chart-container same height */
+        gap: 25px; /* Spacing between stats column and chart column */
+    }
+
+    .stats-grid:not([style*="display: none"]), /* Apply when visible */
+    .stats-grid[style=""] /* Apply when display style is cleared by JS */
+    {
+        flex: 0 0 260px; /* Fixed width for the stats column, adjust as needed */
+        display: flex !important; /* Override inline style from JS if any, and default grid */
+        flex-direction: column; /* Stack stat cards vertically */
+        justify-content: space-around; /* Distribute stat cards vertically */
+        
+        /* Reset grid properties that might interfere */
+        grid-template-columns: none;
+        gap: 15px; /* You can adjust this gap for vertical spacing or rely on space-around */
+        /* padding-top: 10px; Add padding if space-around feels too tight at edges */
+        /* padding-bottom: 10px; */
+    }
+
+    .stats-grid .stat-card {
+        margin-bottom: 0; /* Remove original bottom margin if any, rely on flexbox gap/distribution */
+    }
+
+    .main-chart-container {
+        flex-grow: 1; /* Chart takes remaining horizontal space */
+        min-height: 500px; /* Ensures the chart has a good minimum height */
+        margin-bottom: 0; /* Reset margin as gap is handled by parent */
+    }
+}
+
+.main-chart-container, .log-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 25px;
+    min-height: 500px; 
+}
+/* For messages inside the chart area */
+.chart-message {
+    text-align: center;
+    padding-top: 50px;
+    font-size: 1.1rem;
+    color: #555;
+}
+.chart-message.error {
+    color: #d9534f; /* Bootstrap danger color */
+    font-weight: bold;
+}
+
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.3s ease;
+    z-index: 50;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 5px;
+    min-height: 2.5rem; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.stat-value.small-text { 
+    font-size: 1.2rem; 
+    line-height: 1.3;
+}
+
+
+.stat-label {
+    color: #718096;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3; 
+    border-top: 3px solid #667eea; 
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#toastContainer {
+    position: fixed; top: 20px; right: 20px; z-index: 2000; 
+    display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+}
+.toast {
+    background-color: #333; color: white; padding: 12px 18px; border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.25); opacity: 0; transform: translateX(20%);
+    transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex; align-items: center; min-width: 280px; max-width: 400px; font-size: 0.95rem;
+}
+.toast.visible { opacity: 1; transform: translateX(0); }
+.toast .loading { border-top-color: white; border-left-color: rgba(255,255,255,0.3); border-right-color: rgba(255,255,255,0.3); border-bottom-color: rgba(255,255,255,0.3); }
+.toast.success { background-color: #4CAF50; } .toast.error { background-color: #f44336; }  
+.toast.info { background-color: #2196F3; } .toast.warning { background-color: #ff9800; }
+.toast.info-persistent { background-color: #555; } 
+
+.detail-popup {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); 
+    background: white; border-radius: 20px; padding: 0; 
+    box-shadow: 0 25px 80px rgba(0,0,0,0.4); z-index: 1000;
+    max-width: 90vw; width: 800px; max-height: 85vh;
+    overflow: hidden; display: none; opacity: 0;
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+.detail-popup.visible { display: flex; flex-direction: column; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.popup-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px 25px; position: relative; border-top-left-radius: 20px; border-top-right-radius: 20px; }
+.popup-title { font-size: 1.5rem; font-weight: 600; margin: 0; max-width: calc(100% - 50px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.close-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+.close-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.1) rotate(90deg); }
+.popup-body { padding: 25px; flex-grow: 1; overflow-y: auto; background-color: #f8f9fa; }
+.summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 25px; padding: 20px; background: linear-gradient(135deg, #f0f2f5, #e6e9ed); border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+.summary-stat { text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.summary-stat-value { font-size: 1.8rem; font-weight: bold; color: #667eea; margin-bottom: 3px; }
+.summary-stat-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-table-container { overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.detail-table { width: 100%; border-collapse: collapse; }
+.detail-table th { background: linear-gradient(135deg, #7385db, #8561b1); color: white; padding: 15px 12px; text-align: left; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; }
+.detail-table td { padding: 12px; border-bottom: 1px solid #e9ecef; vertical-align: top; font-size: 0.9rem; color: #495057; }
+.detail-table tr:nth-child(even) { background-color: #f8f9fa; } .detail-table tr:hover { background: rgba(102, 126, 234, 0.05); }
+.detail-table tr:last-child td { border-bottom: none; }
+.file-path-cell { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.85rem; color: #4a5568; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.duration-cell { text-align: right; font-weight: 600; color: #667eea; } .date-cell { color: #4a5568; font-weight: 500; white-space: nowrap; }
+.project-cell { font-weight: 500; color: #2d3748; } .subproject-cell { color: #718096; }
+.overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 999; display: none; opacity: 0; transition: opacity 0.3s ease-out; }
+.overlay.visible { display: block; opacity: 1; }
+
+.autocomplete-wrapper { position: relative; display: flex; align-items: center; }
+.autocomplete-wrapper input[type="text"] { flex-grow: 1; padding-right: 30px; }
+.clear-input-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #aaa; font-size: 20px; font-weight: bold; padding: 0 5px; line-height: 1; z-index: 2; }
+.clear-input-btn:hover { color: #333; }
+.autocomplete-suggestions { position: absolute; border: 1px solid #ddd; border-top: none; z-index: 1500; top: 100%; left: 0; right: 0; background-color: white; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; }
+.autocomplete-suggestions div { padding: 10px 16px; cursor: pointer; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.autocomplete-suggestions div:hover { background-color: #f0f0f0; } .autocomplete-suggestions div.active { background-color: #667eea; color: white; }
+.file-input-wrapper.needs-attention { animation: shake 1.5s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake { 10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-3px,0,0)}40%,60%{transform:translate3d(3px,0,0)}}
+.log-container h2 { font-size: 1.5rem; color: #2d3748; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+.log-summary { font-size: 1rem; color: #4a5568; margin-bottom: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e2e8f0; }
+.log-entry { margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.log-entry summary { padding: 12px 15px; font-weight: 600; background-color: #f9fafb; cursor: pointer; outline: none; color: #374151; display: block; transition: background-color 0.2s ease; }
+.log-entry summary:hover { background-color: #f3f4f6; } .log-entry summary::-webkit-details-marker { margin-right: 8px; }
+.log-entry-content { padding: 15px; background-color: white; font-size: 0.9rem; color: #4b5563; border-top: 1px solid #e2e8f0; }
+.log-entry-content strong { color: #1f2937; }
+.hidden-controls { display: none !important; }
+
+.analysis-config-group .control-item {
+    margin-top: 0; /* Existing good style */
+}
+
+
+@media (max-width: 900px) {
+    .detail-popup{width:95vw} #toastContainer{right:10px;left:10px;top:10px;align-items:center} .toast{width:auto;max-width:calc(100vw - 40px)}
+     .header-action-button { top: 10px; left: 10px; padding: 8px 10px; font-size: 0.8rem; }
+}
+@media (max-width: 768px) {
+    .control-group{
+        flex-direction:column; 
+        align-items:stretch; /* Make items full width */
+        gap: 15px; /* Adjust gap for column layout */
+    } 
+    .control-item{
+        min-width:100%; /* Ensure full width in column */
+        flex-basis: auto; /* Reset basis for column layout */
+    }
+    input#dateRangePicker.flatpickr-input {
+         max-width: none; /* Allow date picker to be full width on small screens */
+    }
+    .date-preset-buttons{justify-content:space-around; flex-wrap: wrap;}
+    .date-preset-buttons .clear-dates-btn { margin-left: 0; flex-basis: 100%; margin-top: 10px;} 
+    .header h1{font-size:2rem}
+    .summary-stats{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+    .detail-table{font-size:.85rem} .file-path-cell{max-width:150px}
+}

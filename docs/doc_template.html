@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation</title>
+    <link rel="icon" href="auction-command-icon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="auction-command-icon.ico" type="image/x-icon"> {/* For older IE */}
+    <style>
+        /* ... (CSS remains the same as your last provided version) ... */
+        :root { /* Dark theme (default) */ --bg-primary: #0f1419; --bg-secondary: #1a1f29; --bg-tertiary: #232936; --text-primary: #e6e8eb; --text-secondary: #a8adb8; --text-muted: #6c7380; --accent-primary: #00d4aa; --accent-secondary: #4fc3f7; --border-color: #2d3748; --code-bg: #1e2532; --hover-bg: #2a3441; --shadow: rgba(0, 0, 0, 0.3); --scrollbar-thumb: #4a5568; --note-bg: rgba(79, 195, 247, 0.1); --note-border: #4fc3f7; --warning-bg: rgba(255, 193, 7, 0.1); --warning-border: #ffc107; }
+        [data-theme="light"] { /* Light theme */ --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9; --text-primary: #1a202c; --text-secondary: #2d3748; --text-muted: #718096; --accent-primary: #00b894; --accent-secondary: #0284c7; --border-color: #e2e8f0; --code-bg: #f1f5f9; --hover-bg: #f7fafc; --shadow: rgba(0, 0, 0, 0.1); --scrollbar-thumb: #cbd5e0; --note-bg: rgba(14, 165, 233, 0.1); --note-border: #0ea5e9; --warning-bg: rgba(245, 158, 11, 0.1); --warning-border: #f59e0b; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; background-color: var(--bg-primary); color: var(--text-primary); display: flex; transition: background-color 0.3s ease, color 0.3s ease; }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg-secondary); } ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+        #toc-sidebar { width: 320px; position: fixed; height: 100vh; overflow-y: auto; background-color: var(--bg-secondary); padding: 24px; box-shadow: 2px 0 20px var(--shadow); border-right: 1px solid var(--border-color); transition: all 0.3s ease; display: flex; flex-direction: column; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-header h2 { color: var(--accent-primary); font-size: 1.2em; font-weight: 600; letter-spacing: -0.025em; }
+        .search-container { position: relative; margin-bottom: 20px; }
+        .search-input { width: 100%; padding: 12px 40px 12px 16px; background-color: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 0.9em; transition: all 0.3s ease; }
+        .search-input:focus { outline: none; border-color: var(--accent-primary); background-color: var(--hover-bg); }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; pointer-events: none; }
+        .search-results { max-height: 200px; overflow-y: auto; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 8px; display: none; position: absolute; width: 100%; z-index: 10; box-shadow: 0 4px 12px var(--shadow); }
+        .search-result-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease; }
+        .search-result-item:last-child { border-bottom: none; } .search-result-item:hover { background-color: var(--hover-bg); }
+        .search-result-title { font-weight: 600; color: var(--accent-primary); font-size: 0.9em; margin-bottom: 4px; }
+        .search-result-content { font-size: 0.8em; color: var(--text-muted); line-height: 1.4; }
+        .search-highlight { background-color: var(--accent-primary); color: var(--bg-primary); padding: 1px 3px; border-radius: 3px; font-weight: 600; }
+        .actions-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+        .action-btn { background: none; border: 2px solid var(--border-color); color: var(--text-secondary); cursor: pointer; padding: 8px 12px; border-radius: 6px; font-size: 0.8em; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; }
+        .action-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); background-color: var(--hover-bg); }
+        .action-btn svg { width: 12px; height: 12px; }
+        .toc-wrapper { flex-grow: 1; overflow-y: auto; }
+        #toc-sidebar ul { list-style-type: none; } #toc-sidebar ul li { margin-bottom: 4px; }
+        #toc-sidebar ul li a { display: block; padding: 10px 16px; color: var(--text-secondary); text-decoration: none; border-radius: 8px; transition: all 0.3s ease; font-size: 0.95em; font-weight: 500; position: relative; }
+        #toc-sidebar ul li a:hover { color: var(--accent-primary); background-color: var(--hover-bg); transform: translateX(4px); }
+        #toc-sidebar ul li a.active { color: var(--accent-primary); background-color: rgba(0, 212, 170, 0.1); border-left: 3px solid var(--accent-primary); }
+        #toc-sidebar ul ul { padding-left: 16px; margin-top: 4px; /* Controlled by .collapsed */ }
+        #toc-sidebar ul ul.collapsed { display: none; }
+        #toc-sidebar ul ul li a { font-size: 0.85em; color: var(--text-muted); font-weight: 400; padding: 8px 12px; }
+        #main-content { margin-left: 320px; padding: 40px 48px; max-width: 1000px; width: calc(100% - 320px); min-height: 100vh; }
+        #main-content header { margin-bottom: 32px; }
+        #main-content h1 { color: var(--text-primary); font-size: 2.5em; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.025em; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        #main-content section { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border-color); }
+        #main-content section:last-of-type { border-bottom: none; }
+        #main-content h2 { color: var(--text-primary); font-size: 1.8em; font-weight: 600; margin: 32px 0 16px 0; letter-spacing: -0.025em; position: relative; padding-left: 16px; }
+        #main-content h2::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary)); border-radius: 2px; }
+        #main-content h3 { color: var(--accent-secondary); font-size: 1.3em; font-weight: 600; margin: 24px 0 12px 0; letter-spacing: -0.015em; }
+        #main-content p, #main-content li { font-size: 1.05em; margin-bottom: 16px; color: var(--text-secondary); line-height: 1.7; }
+        #main-content a { color: var(--accent-primary); text-decoration: none; border-bottom: 1px solid transparent; transition: all 0.3s ease; }
+        #main-content a:hover { color: var(--accent-secondary); border-bottom-color: var(--accent-secondary); }
+        #main-content ul, #main-content ol { padding-left: 24px; margin-bottom: 16px; } #main-content li { margin-bottom: 8px; }
+        #main-content code { background-color: var(--code-bg); color: var(--accent-primary); padding: 4px 8px; border-radius: 6px; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 0.9em; font-weight: 500; border: 1px solid var(--border-color); }
+        #main-content pre > code { padding: 0; background-color: transparent; border: none; color: var(--text-secondary); }
+        #main-content pre { background-color: var(--code-bg); padding: 20px; border-radius: 12px; overflow-x: auto; margin: 20px 0; border: 1px solid var(--border-color); box-shadow: 0 4px 6px var(--shadow); }
+        #main-content .note { background-color: var(--note-bg); border-left: 4px solid var(--note-border); padding: 20px; margin: 24px 0; border-radius: 0 12px 12px 0; backdrop-filter: blur(10px); }
+        #main-content .warning { background-color: var(--warning-bg); border-left: 4px solid var(--warning-border); padding: 20px; margin: 24px 0; border-radius: 0 12px 12px 0; backdrop-filter: blur(10px); }
+        #main-content table { width: 100%; border-collapse: collapse; margin: 24px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px var(--shadow); }
+        #main-content th, #main-content td { border: 1px solid var(--border-color); padding: 16px; text-align: left; }
+        #main-content th { background-color: var(--bg-tertiary); color: var(--text-primary); font-weight: 600; }
+        #main-content tr:nth-child(even) { background-color: var(--hover-bg); } #main-content tr:hover { background-color: var(--bg-tertiary); }
+        #main-content h1, #main-content h2, #main-content h3 { scroll-margin-top: 80px; }
+        .breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 0.9em; color: var(--text-muted); }
+        .breadcrumb a { color: var(--accent-primary); text-decoration: none; } .breadcrumb a:hover { color: var(--accent-secondary); }
+        .breadcrumb-separator { color: var(--text-muted); }
+        .theme-toggle { background: none; border: 2px solid var(--border-color); color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; }
+        .theme-toggle:hover { border-color: var(--accent-primary); color: var(--accent-primary); background-color: var(--hover-bg); }
+        .theme-toggle svg { width: 18px; height: 18px; transition: transform 0.3s ease; }
+        .theme-toggle:hover svg { transform: rotate(180deg); }
+        .back-to-top { position: fixed; bottom: 24px; right: 24px; background-color: var(--accent-primary); color: var(--bg-primary); border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); transition: all 0.3s ease; opacity: 0; transform: translateY(100px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .back-to-top.visible { opacity: 1; transform: translateY(0); }
+        .back-to-top:hover { background-color: var(--accent-secondary); transform: translateY(-2px); box-shadow: 0 6px 20px var(--shadow); }
+        .back-to-top svg { width: 20px; height: 20px; }
+        @media (max-width: 1024px) { #toc-sidebar { width: 280px; } #main-content { margin-left: 280px; width: calc(100% - 280px); padding: 32px; } }
+        @media (max-width: 768px) { body { display: block; } #toc-sidebar { position: static; width: 100%; height: auto; box-shadow: none; border-right: none; border-bottom: 1px solid var(--border-color); } #main-content { margin-left: 0; width: 100%; padding: 24px 20px; } #main-content h1 { font-size: 2em; } #main-content h2 { font-size: 1.5em; } .breadcrumb { display: none; } }
+        .loading { opacity: 0; animation: fadeIn 0.5s 0.2s ease-in-out forwards; }
+        @keyframes fadeIn { to { opacity: 1; } }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <script type="text/markdown" id="markdown-source" style="display:none;">
+        <!-- MARKDOWN CONTENT WILL BE INSERTED HERE BY THE BUILD SCRIPT -->
+    </script>
+
+    <nav id="toc-sidebar">
+        <div class="sidebar-header">
+            <h2>Contents</h2>
+            <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    {/* Icon will be set by JS */}
+                </svg>
+            </button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" class="search-input" id="search-input" placeholder="Search documentation..." autocomplete="off">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <div class="search-results" id="search-results"></div>
+        </div>
+
+        <div class="actions-bar">
+            <button class="action-btn" id="expand-all" title="Expand all sections">
+                <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                Expand
+            </button>
+            <button class="action-btn" id="collapse-all" title="Collapse all sections">
+                <svg viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                Collapse
+            </button>
+        </div>
+
+        <div class="toc-wrapper">
+            <ul id="toc-list"></ul>
+        </div>
+    </nav>
+
+    <div id="main-content">
+        <div class="breadcrumb" id="breadcrumb">
+            <a href="#" id="breadcrumb-home">Documentation</a>
+            {/* Dynamic breadcrumb items will be added here */}
+        </div>
+        
+        <header>
+             <h1 id="main-doc-title" class="loading">Loading Documentation...</h1>
+        </header>
+        <div id="dynamic-content-area" class="loading"></div>
+    </div>
+
+    <button class="back-to-top" id="back-to-top" title="Back to top">
+        <svg viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const App = {
+            elements: {
+                body: document.body,
+                themeToggle: document.getElementById('theme-toggle'),
+                themeIcon: document.getElementById('theme-icon'),
+                searchInput: document.getElementById('search-input'),
+                searchResults: document.getElementById('search-results'),
+                expandAllBtn: document.getElementById('expand-all'),
+                collapseAllBtn: document.getElementById('collapse-all'),
+                tocList: document.getElementById('toc-list'),
+                mainDocTitle: document.getElementById('main-doc-title'),
+                dynamicContentArea: document.getElementById('dynamic-content-area'),
+                backToTopBtn: document.getElementById('back-to-top'),
+                breadcrumb: document.getElementById('breadcrumb'),
+                breadcrumbHome: document.getElementById('breadcrumb-home'),
+                markdownSource: document.getElementById('markdown-source'),
+                tocWrapper: document.querySelector('.toc-wrapper'), // Added
+            },
+            config: {
+                scrollSpyOffset: '-20% 0px -70% 0px',
+                searchDebounceMs: 300,
+                searchContextLength: 80,
+            },
+            state: {
+                currentTheme: 'dark',
+                searchIndex: [],
+                allHeadingsForScrollSpy: [],
+                activeTocLink: null,
+                isTocInitiallyCollapsed: true, // New state for initial TOC collapse
+            },
+
+            init() {
+                this.initTheme();
+                this.renderMarkdown(); 
+                this.initEventListeners();
+                console.log("App initialized");
+            },
+
+            initTheme() { /* ... same ... */
+                this.state.currentTheme = localStorage.getItem('doc-theme') || 'dark';
+                this.elements.body.setAttribute('data-theme', this.state.currentTheme);
+                this.updateThemeIcon();
+            },
+            toggleTheme() { /* ... same ... */
+                this.state.currentTheme = this.state.currentTheme === 'dark' ? 'light' : 'dark';
+                this.elements.body.setAttribute('data-theme', this.state.currentTheme);
+                localStorage.setItem('doc-theme', this.state.currentTheme);
+                this.updateThemeIcon();
+            },
+            updateThemeIcon() { /* ... same ... */
+                if (this.state.currentTheme === 'dark') {
+                    this.elements.themeIcon.innerHTML = `<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>`;
+                } else {
+                    this.elements.themeIcon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+                }
+            },
+
+            slugify(text) { /* ... same ... */
+                if (typeof text !== 'string') text = '';
+                return text.normalize('NFKD').toLowerCase().trim()
+                           .replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
+            },
+            renderMarkdown() { /* ... same ... */
+                try {
+                    if (!this.elements.markdownSource) throw new Error("Markdown source element not found.");
+                    let markdownText = (this.elements.markdownSource.textContent || this.elements.markdownSource.innerText || "").trim();
+
+                    if (!markdownText || markdownText.startsWith("<!-- MARKDOWN CONTENT")) {
+                        console.warn("No Markdown content. Displaying empty/fallback page.");
+                        this.elements.mainDocTitle.textContent = "Documentation";
+                        this.elements.dynamicContentArea.innerHTML = "<p>No content loaded or placeholder still present.</p>";
+                        document.title = "Documentation";
+                        this.elements.mainDocTitle.classList.add('loading'); 
+                        this.elements.dynamicContentArea.classList.add('loading');
+                        return;
+                    }
+
+                    const renderer = new marked.Renderer();
+                    renderer.heading = (text, level, raw, slugger) => {
+                        const safeText = (typeof text === 'string') ? text : String(text);
+                        const safeRaw = (typeof raw === 'string') ? raw : '';
+                        const safeLevel = (typeof level === 'number' && level >= 1 && level <= 6) ? level : 2;
+                        const id = slugger && typeof slugger.slug === 'function' ? slugger.slug(safeRaw) : this.slugify(safeRaw);
+                        const dataRawText = safeRaw.replace(/"/g, '"');
+                        return `<h${safeLevel} id="${id}" data-toc-text="${dataRawText}">${safeText}</h${safeLevel}>\n`;
+                    };
+
+                    marked.setOptions({
+                        renderer: renderer, headerIds: true, pedantic: false, gfm: true,
+                        breaks: false, smartLists: true, smartypants: false, xhtml: false
+                    });
+
+                    const htmlContent = marked.parse(markdownText);
+                    this.elements.dynamicContentArea.innerHTML = htmlContent;
+                    
+                    this.structureContentAndBuildToc(); // This also calls initial collapse
+                    this.initTocLinks();
+                    this.initScrollSpy();
+                    this.initSearch(); 
+
+                    this.elements.mainDocTitle.classList.remove('loading');
+                    this.elements.dynamicContentArea.classList.remove('loading');
+
+                } catch (error) {
+                    console.error('Error processing embedded Markdown:', error);
+                    this.elements.dynamicContentArea.innerHTML = `<p style="color:red;font-weight:bold;">Error loading documentation: ${error.message}</p>`;
+                }
+            },
+            structureContentAndBuildToc() { /* ... same as before until TOC loop ... */
+                this.elements.tocList.innerHTML = '';
+                let pageTitle = "Documentation";
+                const firstH1 = this.elements.dynamicContentArea.querySelector('h1');
+
+                if (firstH1) {
+                    pageTitle = (firstH1.dataset.tocText || firstH1.textContent || "Documentation").trim();
+                    this.elements.mainDocTitle.innerHTML = firstH1.innerHTML;
+                    document.title = pageTitle;
+                    firstH1.remove();
+                } else {
+                    this.elements.mainDocTitle.textContent = pageTitle;
+                    document.title = pageTitle;
+                }
+                this.elements.mainDocTitle.classList.add('loading');
+
+                const mainContentChildren = Array.from(this.elements.dynamicContentArea.childNodes);
+                this.elements.dynamicContentArea.innerHTML = ''; 
+                let currentSection = null;
+                mainContentChildren.forEach(node => {
+                    if (node.nodeName === 'H2') {
+                        if (currentSection) this.elements.dynamicContentArea.appendChild(currentSection);
+                        currentSection = document.createElement('section');
+                    }
+                    if (currentSection) currentSection.appendChild(node);
+                    else this.elements.dynamicContentArea.appendChild(node); 
+                });
+                if (currentSection) this.elements.dynamicContentArea.appendChild(currentSection);
+
+                const headings = this.elements.dynamicContentArea.querySelectorAll('h2, h3');
+                this.state.allHeadingsForScrollSpy = Array.from(headings);
+
+                let currentH2ListItem = null;
+                headings.forEach(heading => {
+                    let tocText = heading.dataset.tocText;
+                    if (tocText === undefined || tocText === null) {
+                        tocText = (heading.textContent || heading.innerText || "Untitled Section").trim();
+                    }
+                    if (!heading.id) heading.id = this.slugify(tocText);
+
+                    const listItem = document.createElement('li');
+                    const anchor = document.createElement('a');
+                    anchor.textContent = tocText;
+                    anchor.href = `#${heading.id}`;
+                    listItem.appendChild(anchor);
+
+                    if (heading.tagName === 'H2') {
+                        this.elements.tocList.appendChild(listItem);
+                        currentH2ListItem = listItem;
+                        const subUl = document.createElement('ul');
+                        // subUl.classList.add('collapsed'); // Initial collapse handled by a separate call
+                        listItem.appendChild(subUl); 
+                    } else if (heading.tagName === 'H3' && currentH2ListItem) {
+                        const subListContainer = currentH2ListItem.querySelector('ul');
+                        if (subListContainer) subListContainer.appendChild(listItem);
+                    }
+                });
+                
+                if (this.state.isTocInitiallyCollapsed) {
+                    this.collapseAllToc(null); // Collapse all initially, no specific one to keep open
+                }
+            },
+
+            initTocLinks() { /* ... same ... */
+                this.elements.tocList.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetId = anchor.getAttribute('href').substring(1);
+                        const targetElement = document.getElementById(targetId);
+                        if (targetElement) {
+                            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            // updateActiveTocLink will be called by scrollspy or can be called here
+                            // For immediate feedback on click:
+                            this.updateActiveTocLink(anchor, true); // Pass true to force focus collapse
+                            this.updateBreadcrumb(targetElement);
+                        }
+                    });
+                });
+            },
+
+                        updateActiveTocLink(activeLink, focusCollapse = false) {
+                if (!activeLink) return;
+
+                // If focusCollapse is true, collapse all others first
+                if (focusCollapse) {
+                    this.collapseAllToc(activeLink.closest('li:has(> ul)'));
+                }
+
+                if (this.state.activeTocLink) {
+                    this.state.activeTocLink.classList.remove('active');
+                }
+                
+                activeLink.classList.add('active');
+                this.state.activeTocLink = activeLink;
+
+                // Ensure parent H2 section is expanded
+                const parentLi = activeLink.closest('li:has(> ul)'); // H2 li
+                if (parentLi) {
+                    const subUl = parentLi.querySelector('ul');
+                    if (subUl) subUl.classList.remove('collapsed');
+                } else { // If activeLink is an H2 link itself
+                     const directSubUl = activeLink.parentElement.querySelector('ul');
+                     if(directSubUl) directSubUl.classList.remove('collapsed');
+                }
+                
+                // Scroll the active link into view within the TOC sidebar
+                // ONLY if the TOC is likely fixed and visible (not on typical mobile layout)
+                const tocSidebar = document.getElementById('toc-sidebar');
+                if (tocSidebar && getComputedStyle(tocSidebar).position === 'fixed') {
+                    activeLink.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            },
+
+            initScrollSpy() { /* ... same, but calls updated updateActiveTocLink ... */
+                if (!('IntersectionObserver' in window)) {
+                    console.warn("IntersectionObserver not supported. Scroll spy disabled.");
+                    return;
+                }
+                const observer = new IntersectionObserver((entries) => {
+                    let intersectedEntry = null;
+                    // Find the topmost visible entry
+                    for (const entry of entries) {
+                        if (entry.isIntersecting) {
+                            intersectedEntry = entry;
+                            break; 
+                        }
+                    }
+
+                    if (intersectedEntry) {
+                        const id = intersectedEntry.target.getAttribute('id');
+                        const tocLink = this.elements.tocList.querySelector(`a[href="#${id}"]`);
+                        if (tocLink) {
+                            this.updateActiveTocLink(tocLink, true); // Pass true to force focus collapse
+                            this.updateBreadcrumb(intersectedEntry.target);
+                        }
+                    }
+                }, { rootMargin: this.config.scrollSpyOffset, threshold: 0.1 }); // Added threshold
+
+                this.state.allHeadingsForScrollSpy.forEach(heading => observer.observe(heading));
+            },
+            
+            initSearch() { /* ... same ... */
+                this.buildSearchIndex();
+                this.elements.searchInput.addEventListener('input', this.debounce(() => this.performSearch(), this.config.searchDebounceMs));
+                this.elements.searchInput.addEventListener('focus', () => {
+                    if (this.elements.searchInput.value.trim()) this.elements.searchResults.style.display = 'block';
+                });
+                document.addEventListener('click', (e) => { 
+                    if (!e.target.closest('.search-container')) this.elements.searchResults.style.display = 'none';
+                });
+            },
+            buildSearchIndex() { /* ... same ... */
+                this.state.searchIndex = [];
+                const mainContent = this.elements.dynamicContentArea;
+                let currentHeadingText = (this.elements.mainDocTitle.textContent || 'Home').trim();
+                let currentHeadingId = this.elements.mainDocTitle.id || 'main-doc-title';
+                const addToIndex = (heading, id, text) => {
+                    if (text.trim()) {
+                        this.state.searchIndex.push({ heading, id, text: text.trim().replace(/\s+/g, ' ') });
+                    }
+                };
+                let currentBlockText = '';
+                mainContent.childNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        if (node.tagName.match(/^H[1-6]$/)) {
+                            addToIndex(currentHeadingText, currentHeadingId, currentBlockText);
+                            currentHeadingText = (node.dataset.tocText || node.textContent || 'Untitled').trim();
+                            currentHeadingId = node.id || this.slugify(currentHeadingText);
+                            currentBlockText = ''; 
+                        } else if (node.textContent) {
+                            currentBlockText += ' ' + node.textContent;
+                        }
+                    } else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                        currentBlockText += ' ' + node.textContent;
+                    }
+                });
+                addToIndex(currentHeadingText, currentHeadingId, currentBlockText);
+                console.log("Search index built:", this.state.searchIndex.length, "items");
+            },
+
+            performSearch() { /* ... same ... */
+                const query = this.elements.searchInput.value.trim().toLowerCase();
+                if (!query) {
+                    this.elements.searchResults.style.display = 'none';
+                    return;
+                }
+                const results = this.state.searchIndex.filter(item =>
+                    item.text.toLowerCase().includes(query) ||
+                    item.heading.toLowerCase().includes(query)
+                ).slice(0, 10);
+                this.displaySearchResults(results, query);
+            },
+            displaySearchResults(results, query) { /* ... same, ensure data-id is used ... */
+                 if (results.length === 0) {
+                    this.elements.searchResults.innerHTML = '<div class="search-result-item"><div class="search-result-content">No results found.</div></div>';
+                } else {
+                    this.elements.searchResults.innerHTML = results.map(result => {
+                        const highlightedText = this.highlightText(result.text, query, this.config.searchContextLength);
+                        const highlightedHeading = this.highlightText(result.heading, query);
+                        return `
+                            <div class="search-result-item" data-id="${result.id}">
+                                <div class="search-result-title">${highlightedHeading}</div>
+                                <div class.search-result-content">${highlightedText}</div>
+                            </div>`;
+                    }).join('');
+                    this.elements.searchResults.querySelectorAll('.search-result-item').forEach(item => {
+                        item.addEventListener('click', () => this.navigateToSearchResult(item.dataset.id));
+                    });
+                }
+                this.elements.searchResults.style.display = 'block';
+            },
+            highlightText(text, query, maxLength = 0) { /* ... same ... */
+                if (!text) return '';
+                let resultText = text;
+                if (maxLength > 0 && text.length > maxLength) {
+                    const queryIndex = text.toLowerCase().indexOf(query.toLowerCase());
+                    if (queryIndex !== -1) {
+                        const start = Math.max(0, queryIndex - Math.floor(maxLength / 3));
+                        const end = Math.min(text.length, start + maxLength);
+                        resultText = (start > 0 ? '... ' : '') + text.slice(start, end) + (end < text.length ? ' ...' : '');
+                    } else {
+                        resultText = text.slice(0, maxLength) + (text.length > maxLength ? ' ...' : '');
+                    }
+                }
+                const regex = new RegExp(`(${this.escapeRegExp(query)})`, 'gi');
+                return resultText.replace(regex, '<span class="search-highlight">$1</span>');
+            },
+            escapeRegExp(string) { /* ... same ... */ return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); },
+            
+            navigateToSearchResult(elementId) { // Modified to use focusCollapse
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    this.elements.searchResults.style.display = 'none';
+                    this.elements.searchInput.blur();
+                    this.updateBreadcrumb(element);
+                    const tocLink = this.elements.tocList.querySelector(`a[href="#${elementId}"]`);
+                    if(tocLink) this.updateActiveTocLink(tocLink, true); // Pass true for focus collapse
+                }
+            },
+
+            toggleTocSection(ulElement, expand) {
+                if (ulElement) {
+                    ulElement.classList.toggle('collapsed', !expand);
+                }
+            },
+            expandAllToc() {
+                this.elements.tocList.querySelectorAll('ul ul').forEach(ul => this.toggleTocSection(ul, true));
+                this.state.isTocInitiallyCollapsed = false; // User wants them expanded
+            },
+            // Modified collapseAllToc to accept an element to keep open
+            collapseAllToc(keepOpenLi = null) {
+                this.elements.tocList.querySelectorAll('li:has(> ul)').forEach(li => {
+                    if (li !== keepOpenLi) {
+                        const subUl = li.querySelector('ul');
+                        if (subUl) this.toggleTocSection(subUl, false);
+                    }
+                });
+                if (!keepOpenLi) this.state.isTocInitiallyCollapsed = true; // User wants them all collapsed
+            },
+
+            handleBackToTop() { /* ... same ... */
+                 if (window.pageYOffset > 300) this.elements.backToTopBtn.classList.add('visible');
+                else this.elements.backToTopBtn.classList.remove('visible');
+            },
+            scrollToTop() { /* ... same ... */ window.scrollTo({ top: 0, behavior: 'smooth' }); },
+            
+            updateBreadcrumb(currentElement) { /* ... same, but check element before accessing properties ... */
+                if (!currentElement || !currentElement.id || !this.elements.breadcrumb) return;
+                let breadcrumbContainer = this.elements.breadcrumb;
+                let homeLink = breadcrumbContainer.querySelector('#breadcrumb-home');
+                // Clear existing dynamic parts
+                while(homeLink.nextSibling) {
+                    breadcrumbContainer.removeChild(homeLink.nextSibling);
+                }
+
+                if (currentElement && currentElement.id !== this.elements.mainDocTitle.id) {
+                    const separator = document.createElement('span');
+                    separator.className = 'breadcrumb-separator';
+                    separator.textContent = '›';
+                    breadcrumbContainer.appendChild(separator);
+
+                    const currentSpan = document.createElement('span');
+                    currentSpan.id = 'breadcrumb-current';
+                    let text = currentElement.dataset.tocText || currentElement.textContent || "Section";
+                    currentSpan.textContent = text.trim();
+                    breadcrumbContainer.appendChild(currentSpan);
+                    breadcrumbContainer.style.display = 'flex';
+                } else {
+                    // If on home/main title, or no specific element, hide dynamic part
+                    breadcrumbContainer.style.display = (currentElement === this.elements.mainDocTitle || !currentElement) ? 'none' : 'flex';
+                }
+            },
+
+            initEventListeners() { /* ... same ... */
+                this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
+                this.elements.expandAllBtn.addEventListener('click', () => this.expandAllToc());
+                this.elements.collapseAllBtn.addEventListener('click', () => this.collapseAllToc(null)); // Pass null to collapse all
+                this.elements.backToTopBtn.addEventListener('click', () => this.scrollToTop());
+                this.elements.breadcrumbHome.addEventListener('click', (e) => {
+                    e.preventDefault(); this.scrollToTop();
+                    this.updateBreadcrumb(null); // Clear breadcrumb
+                });
+                window.addEventListener('scroll', () => this.handleBackToTop());
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                        e.preventDefault(); this.elements.searchInput.focus();
+                    }
+                    if (e.key === 'Escape') {
+                        this.elements.searchResults.style.display = 'none';
+                        if (document.activeElement === this.elements.searchInput) this.elements.searchInput.blur();
+                    }
+                });
+            },
+            debounce(func, wait) { /* ... same ... */
+                let timeout;
+                return (...args) => {
+                    const later = () => { clearTimeout(timeout); func.apply(this, args); };
+                    clearTimeout(timeout); timeout = setTimeout(later, wait);
+                };
+            }
+        };
+        App.init();
+    });
+    </script>
+</body>
+</html>
