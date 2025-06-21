@@ -1,0 +1,58 @@
+name: Build and Inline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # This is still required to get all branch data
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --save-dev clean-css-cli terser inline-source-cli html-minifier-terser
+
+      - name: Build and Inline with dedicated tools
+        run: |
+          mkdir -p dist
+          sed 's/calender.css/calender.min.css/g; s/calender.js/calender.min.js/g' static/index.html > dist/index.html
+          npx cleancss -o static/css/calender.min.css static/css/calender.css
+          npx terser static/js/calender.js -o static/js/calender.min.js
+          npx inline-source --root 'static' dist/index.html dist/Time-Analyser.html
+          npx html-minifier-terser --collapse-whitespace --remove-comments dist/Time-Analyser.html -o dist/Time-Analyser.html
+
+      - name: Prepare file for commit
+        run: mv dist/Time-Analyser.html .
+
+      # --- This is the key change ---
+      - name: Switch to or Create Prod Branch
+        run: |
+          # Try to switch to the 'prod' branch. If it fails (because it doesn't exist),
+          # the '||' operator will execute the second command, which creates the 'prod' branch.
+          git checkout prod || git checkout -b prod
+
+      - name: Commit result to prod branch
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          # We no longer need to specify the branch here,
+          # as the action will commit to the currently checked-out branch by default.
+          commit_message: "Build: Create self-contained HTML for production"
+          file_pattern: Time-Analyser.html
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          # Add the push_options to force push if needed, but it's often better without it
+          # push_options: --force

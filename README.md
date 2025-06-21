@@ -1,6 +1,6 @@
 # Time Analysis - v2.5
 
-[![License](https://img.shields.io/badge/License-MIT-green)](https://github.com/YouFoundJK/Time-Analyser-Full-Calender/blob/main/LICENSE)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Docs](https://img.shields.io/badge/Documentation-v_2.5-blue)](https://youfoundjk.github.io/Time-Analyser-Full-Calender/)
 
 
